@@ -1,0 +1,74 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aicv-frontend
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:5000/api}
+      VITE_KEYCLOAK_URL: http://localhost:${KEYCLOAK_PORT:-8080}
+      VITE_KEYCLOAK_REALM: ai-cv-generator
+      VITE_KEYCLOAK_CLIENT_ID: frontend-client
+    depends_on:
+      - backend
+    networks:
+      - aicv-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aicv-backend
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:5000
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-aicv_db};Username=${POSTGRES_USER:-aicv_user};Password=${POSTGRES_PASSWORD:-aicv_password}
+      Keycloak__Authority: http://keycloak:8080/realms/ai-cv-generator
+      Keycloak__Audience: frontend-client
+      AiService__BaseUrl: http://ai-service:8000
+    depends_on:
+      - postgres
+      - keycloak
+    networks:
+      - aicv-network
+
+  postgres:
+    image: postgres:16
+    container_name: aicv-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aicv_db}
+      POSTGRES_USER: ${POSTGRES_USER:-aicv_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aicv_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - aicv-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: aicv-keycloak
+    command: ["start-dev", "--import-realm"]
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    volumes:
+      - keycloak_data:/opt/keycloak/data/h2
+      - ./infra/keycloak:/opt/keycloak/data/import:ro
+    networks:
+      - aicv-network
+
+networks:
+  aicv-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  keycloak_data:

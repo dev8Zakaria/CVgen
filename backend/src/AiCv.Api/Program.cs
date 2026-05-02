@@ -5,7 +5,11 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthorization();
 
 app.MapControllers();
