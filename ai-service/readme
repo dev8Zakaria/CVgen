@@ -1,0 +1,5 @@
+This folder will contain the Python FastAPI AI service responsible for:
+- job offer analysis
+- CV content generation
+- prompt management
+- LLM integration
