@@ -60,8 +60,8 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
     volumes:
-      - keycloak_data:/opt/keycloak/data/h2
-      - ./infra/keycloak:/opt/keycloak/data/import:ro
+      - keycloak_data:/opt/keycloak/data
+      - ./infra/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     networks:
       - aicv-network
 
