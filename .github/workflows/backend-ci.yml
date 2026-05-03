@@ -1,0 +1,38 @@
+name: Backend CI Pipeline
+
+# 1. Quand est-ce que ce pipeline s'exécute ?
+on:
+  push:
+    branches: [ "main", "develop" ,"dev-assaad" ]
+    # On lance le CI uniquement si des fichiers du dossier backend ont été modifiés
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ "main", "develop","dev-assaad" ]
+    paths:
+      - 'backend/**'
+
+# 2. Que doit faire le pipeline ?
+jobs:
+  build:
+    name: Build & Check
+    runs-on: ubuntu-latest # Le serveur virtuel utilisé par GitHub
+    
+    steps:
+    # Étape A : Télécharger le code sur le serveur virtuel
+    - name: 📥 Checkout du code
+      uses: actions/checkout@v4
+      
+    # Étape B : Installer le SDK .NET 8
+    - name: ⚙️ Configuration de .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    # Étape C : Télécharger les packages NuGet
+    - name: 📦 Restauration des dépendances
+      run: dotnet restore ./backend/src/AiCv.Api/AiCv.Api.csproj
+      
+    # Étape D : Compiler le code pour vérifier qu'il n'y a pas d'erreurs
+    - name: 🛠️ Compilation (Build)
+      run: dotnet build ./backend/src/AiCv.Api/AiCv.Api.csproj --configuration Release --no-restore
