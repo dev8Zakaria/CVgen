@@ -23,11 +23,11 @@ jobs:
     - name: 📥 Checkout du code
       uses: actions/checkout@v4
       
-    # Étape B : Installer le SDK .NET 8
-    - name: ⚙️ Configuration de .NET 8
+    # Étape B : Installer le SDK .NET 10
+    - name: ⚙️ Configuration de .NET 10
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '10.0.x'
         
     # Étape C : Télécharger les packages NuGet
     - name: 📦 Restauration des dépendances
