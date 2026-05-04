@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using AiCv.Api.Data;
 using AiCv.Api.Modules.Profiles.Services;
+using AiCv.Api.Modules.Opportunities.Repositories;
+using AiCv.Api.Modules.Opportunities.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +18,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // 2. INJECTION DES DÉPENDANCES (SERVICES)
 // ==========================================
 builder.Services.AddScoped<IProfileService, ProfileService>();
+// ... dans la section builder.Services :
+builder.Services.AddScoped<IOpportunityService, OpportunityService>();
 
 // ==========================================
 // 3. CONFIGURATION DES CORS (POUR REACT)
@@ -52,6 +56,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             }
         };
     });
+
 
 builder.Services.AddControllers();
 builder.Services.AddAuthorization();
