@@ -17,9 +17,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ==========================================
 // 2. INJECTION DES DÉPENDANCES (SERVICES)
 // ==========================================
-builder.Services.AddScoped<IProfileService, ProfileService>();
-// ... dans la section builder.Services :
-builder.Services.AddScoped<IOpportunityService, OpportunityService>();
+builder.Services.AddScoped<AiCv.Api.Modules.Profiles.Repositories.ProfileRepository>();
+builder.Services.AddScoped<AiCv.Api.Modules.Profiles.Services.ProfileService>();
+// Opportunities
+builder.Services.AddScoped<OpportunityRepository>();
+builder.Services.AddScoped<OpportunityService>();
 
 // ==========================================
 // 3. CONFIGURATION DES CORS (POUR REACT)

@@ -4,25 +4,25 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using AiCv.Api.Data;
 using AiCv.Api.Modules.Opportunities.DTOs;
-using AiCv.Api.Modules.Opportunities.Repositories;
+using AiCv.Api.Modules.Opportunities.Services;
 
 namespace AiCv.Api.Modules.Opportunities;
 
 [ApiController]
-[Route("api/opportunities")]
+[Route("api/[controller]")]
 [Authorize]
-public sealed class OpportunityController : ControllerBase
+public class OpportunityController : ControllerBase
 {
-    private readonly IOpportunityService _opportunityService;
+    private readonly OpportunityService _opportunityService;
     private readonly AppDbContext _context;
 
-    public OpportunityController(IOpportunityService opportunityService, AppDbContext context)
+    public OpportunityController(OpportunityService opportunityService, AppDbContext context)
     {
         _opportunityService = opportunityService;
         _context = context;
     }
 
-    // POST /api/opportunities
+    // POST: /api/opportunity
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOpportunityDto dto)
     {
@@ -33,7 +33,7 @@ public sealed class OpportunityController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    // GET /api/opportunities
+    // GET: /api/opportunity
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -44,7 +44,7 @@ public sealed class OpportunityController : ControllerBase
         return Ok(result);
     }
 
-    // GET /api/opportunities/{id}
+    // GET: /api/opportunity/{id}
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -57,8 +57,7 @@ public sealed class OpportunityController : ControllerBase
         return Ok(result);
     }
 
-    // ── Helper : traduit le keycloakId du JWT vers le Guid interne ──────────
-
+    // Traduit le keycloakId du JWT vers le Guid interne de la table Users
     private async Task<Guid?> ResolveUserIdAsync()
     {
         var keycloakId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
