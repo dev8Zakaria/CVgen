@@ -10,9 +10,16 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(async (config) => {
-  const token = authService.getToken();
+  let token = authService.getToken();
 
   if (token) {
+    try {
+      await authService.updateToken(30);
+      token = authService.getToken();
+    } catch {
+      token = authService.getToken();
+    }
+
     config.headers.Authorization = `Bearer ${token}`;
   }
 

@@ -7,14 +7,20 @@ export function useProfile() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+  const loadProfile = () => {
     setLoading(true);
+    setError(null);
+
     profileService
       .getCurrentProfile()
       .then((response) => setProfile(response.data))
-      .catch(setError)
+      .catch((requestError) => setError(requestError))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadProfile();
   }, []);
 
-  return { profile, loading, error };
+  return { profile, loading, error, reload: loadProfile };
 }
