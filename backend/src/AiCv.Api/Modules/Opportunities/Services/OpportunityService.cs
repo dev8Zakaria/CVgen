@@ -13,56 +13,143 @@ public class OpportunityService
         _repository = repository;
     }
 
-    // 1. CREATE
-    public async Task<OpportunityResponseDto> CreateAsync(Guid userId, CreateOpportunityDto dto)
+    public async Task<OpportunityResponseDto?> CreateAsync(string keycloakId, CreateOpportunityDto dto)
     {
-        var opportunity = new Opportunity
+        var userId = await ResolveUserIdAsync(keycloakId);
+        if (userId is null)
         {
-            UserId = userId,
-            Title = dto.Title,
-            Company = dto.Company,
-            Description = dto.Description,
-            ExtractedSkills = dto.ExtractedSkills,
-            ExtractedKeywords = dto.ExtractedKeywords
+            return null;
+        }
+
+        var jobOffer = new JobOffer
+        {
+            UserId = userId.Value,
+            Title = dto.Title.Trim(),
+            CompanyName = dto.CompanyName.Trim(),
+            Description = dto.Description.Trim(),
+            AnalysisStatus = "pending",
+            UpdatedAt = DateTime.UtcNow,
         };
 
-        await _repository.AddAsync(opportunity);
+        await _repository.AddAsync(jobOffer);
         await _repository.SaveChangesAsync();
 
-        return MapToResponseDto(opportunity);
+        return MapToResponseDto(jobOffer);
     }
 
-    // 2. GET ALL — retourne uniquement title + company
-    public async Task<List<OpportunityListItemDto>> GetAllByUserAsync(Guid userId)
+    public async Task<List<OpportunityListItemDto>?> GetAllByUserAsync(string keycloakId)
     {
-        var opportunities = await _repository.GetAllByUserIdAsync(userId);
-
-        return opportunities.Select(o => new OpportunityListItemDto
+        var userId = await ResolveUserIdAsync(keycloakId);
+        if (userId is null)
         {
-            Id = o.Id,
-            Title = o.Title,
-            Company = o.Company,
-            CreatedAt = o.CreatedAt
+            return null;
+        }
+
+        var jobOffers = await _repository.GetAllByUserIdAsync(userId.Value);
+
+        return jobOffers.Select(jobOffer => new OpportunityListItemDto
+        {
+            Id = jobOffer.Id,
+            Title = jobOffer.Title,
+            CompanyName = jobOffer.CompanyName,
+            AnalysisStatus = jobOffer.AnalysisStatus,
+            CreatedAt = jobOffer.CreatedAt,
+            UpdatedAt = jobOffer.UpdatedAt,
         }).ToList();
     }
 
-    // 3. GET BY ID — retourne le détail complet
-    public async Task<OpportunityResponseDto?> GetByIdAsync(Guid id, Guid userId)
+    public async Task<OpportunityResponseDto?> GetByIdAsync(Guid id, string keycloakId)
     {
-        var opportunity = await _repository.GetByIdAndUserIdAsync(id, userId);
-        return opportunity is null ? null : MapToResponseDto(opportunity);
+        var userId = await ResolveUserIdAsync(keycloakId);
+        if (userId is null)
+        {
+            return null;
+        }
+
+        var jobOffer = await _repository.GetByIdAndUserIdAsync(id, userId.Value);
+        return jobOffer is null ? null : MapToResponseDto(jobOffer);
     }
 
-    // Mapping privé vers le DTO complet
-    private static OpportunityResponseDto MapToResponseDto(Opportunity o) => new()
+    public async Task<OpportunityResponseDto?> UpdateAsync(Guid id, string keycloakId, UpdateOpportunityDto dto)
     {
-        Id = o.Id,
-        UserId = o.UserId,
-        Title = o.Title,
-        Company = o.Company,
-        Description = o.Description,
-        ExtractedSkills = o.ExtractedSkills,
-        ExtractedKeywords = o.ExtractedKeywords,
-        CreatedAt = o.CreatedAt
+        var userId = await ResolveUserIdAsync(keycloakId);
+        if (userId is null)
+        {
+            return null;
+        }
+
+        var jobOffer = await _repository.GetByIdAndUserIdAsync(id, userId.Value);
+        if (jobOffer is null)
+        {
+            return null;
+        }
+
+        jobOffer.Title = dto.Title.Trim();
+        jobOffer.CompanyName = dto.CompanyName.Trim();
+        jobOffer.Description = dto.Description.Trim();
+        jobOffer.AnalysisStatus = "pending";
+        jobOffer.UpdatedAt = DateTime.UtcNow;
+
+        if (jobOffer.Analysis is not null)
+        {
+            _repository.RemoveAnalysis(jobOffer.Analysis);
+            jobOffer.Analysis = null;
+        }
+
+        await _repository.SaveChangesAsync();
+        return MapToResponseDto(jobOffer);
+    }
+
+    public async Task<bool> DeleteAsync(Guid id, string keycloakId)
+    {
+        var userId = await ResolveUserIdAsync(keycloakId);
+        if (userId is null)
+        {
+            return false;
+        }
+
+        var jobOffer = await _repository.GetByIdAndUserIdAsync(id, userId.Value);
+        if (jobOffer is null)
+        {
+            return false;
+        }
+
+        _repository.Remove(jobOffer);
+        await _repository.SaveChangesAsync();
+        return true;
+    }
+
+    private Task<Guid?> ResolveUserIdAsync(string keycloakId)
+    {
+        return _repository.GetUserIdByKeycloakIdAsync(keycloakId);
+    }
+
+    private static OpportunityResponseDto MapToResponseDto(JobOffer jobOffer) => new()
+    {
+        Id = jobOffer.Id,
+        UserId = jobOffer.UserId,
+        Title = jobOffer.Title,
+        CompanyName = jobOffer.CompanyName,
+        Description = jobOffer.Description,
+        AnalysisStatus = jobOffer.AnalysisStatus,
+        CreatedAt = jobOffer.CreatedAt,
+        UpdatedAt = jobOffer.UpdatedAt,
+        Analysis = jobOffer.Analysis is null
+            ? null
+            : new OpportunityAnalysisResponseDto
+            {
+                Id = jobOffer.Analysis.Id,
+                JobOfferId = jobOffer.Analysis.JobOfferId,
+                ExtractedSkills = jobOffer.Analysis.ExtractedSkills,
+                ExtractedKeywords = jobOffer.Analysis.ExtractedKeywords,
+                ExtractedResponsibilities = jobOffer.Analysis.ExtractedResponsibilities,
+                DetectedExperienceLevel = jobOffer.Analysis.DetectedExperienceLevel,
+                DetectedLocation = jobOffer.Analysis.DetectedLocation,
+                DetectedContractType = jobOffer.Analysis.DetectedContractType,
+                DetectedTechnologies = jobOffer.Analysis.DetectedTechnologies,
+                AnalysisSummary = jobOffer.Analysis.AnalysisSummary,
+                RawAnalysisJson = jobOffer.Analysis.RawAnalysisJson,
+                CreatedAt = jobOffer.Analysis.CreatedAt,
+            },
     };
 }

@@ -13,23 +13,42 @@ public class OpportunityRepository
         _context = context;
     }
 
-    public async Task<List<Opportunity>> GetAllByUserIdAsync(Guid userId)
+    public async Task<Guid?> GetUserIdByKeycloakIdAsync(string keycloakId)
     {
-        return await _context.Opportunities
-            .Where(o => o.UserId == userId)
-            .OrderByDescending(o => o.CreatedAt)
+        return await _context.Users
+            .Where(user => user.KeycloakId == keycloakId)
+            .Select(user => (Guid?)user.Id)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<List<JobOffer>> GetAllByUserIdAsync(Guid userId)
+    {
+        return await _context.JobOffers
+            .Where(jobOffer => jobOffer.UserId == userId)
+            .OrderByDescending(jobOffer => jobOffer.CreatedAt)
             .ToListAsync();
     }
 
-    public async Task<Opportunity?> GetByIdAndUserIdAsync(Guid id, Guid userId)
+    public async Task<JobOffer?> GetByIdAndUserIdAsync(Guid id, Guid userId)
     {
-        return await _context.Opportunities
-            .FirstOrDefaultAsync(o => o.Id == id && o.UserId == userId);
+        return await _context.JobOffers
+            .Include(jobOffer => jobOffer.Analysis)
+            .FirstOrDefaultAsync(jobOffer => jobOffer.Id == id && jobOffer.UserId == userId);
     }
 
-    public async Task AddAsync(Opportunity opportunity)
+    public async Task AddAsync(JobOffer jobOffer)
     {
-        await _context.Opportunities.AddAsync(opportunity);
+        await _context.JobOffers.AddAsync(jobOffer);
+    }
+
+    public void Remove(JobOffer jobOffer)
+    {
+        _context.JobOffers.Remove(jobOffer);
+    }
+
+    public void RemoveAnalysis(JobOfferAnalysis analysis)
+    {
+        _context.JobOfferAnalyses.Remove(analysis);
     }
 
     public async Task SaveChangesAsync()

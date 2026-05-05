@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AiCv.Api.Modules.Opportunities.DTOs;
 
-public class CreateOpportunityDto
+public class UpdateOpportunityDto
 {
     [Required]
     public string Title { get; set; } = string.Empty;
