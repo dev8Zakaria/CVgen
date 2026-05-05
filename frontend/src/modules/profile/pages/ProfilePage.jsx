@@ -1,4 +1,18 @@
-import { AlertCircle, LoaderCircle, Mail, MapPin, Phone, RefreshCw, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import {
+  AlertCircle,
+  LoaderCircle,
+  Mail,
+  MapPin,
+  PencilLine,
+  Phone,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/modules/auth/AuthProvider";
@@ -18,7 +32,15 @@ function InfoCard({ icon: Icon, label, value, subtle = false }) {
 
 export function ProfilePage() {
   const { user } = useAuth();
-  const { profile, loading, error, reload } = useProfile();
+  const { profile, loading, updating, deleting, error, reload, updateProfile, deleteProfile } = useProfile();
+  const [form, setForm] = useState({
+    title: "",
+    summary: "",
+    phone: "",
+    location: "",
+  });
+  const [feedback, setFeedback] = useState({ tone: null, message: "" });
+  const [profileDeleted, setProfileDeleted] = useState(false);
 
   const displayName =
     profile?.fullName ||
@@ -26,6 +48,65 @@ export function ProfilePage() {
     [user?.given_name, user?.family_name].filter(Boolean).join(" ") ||
     user?.preferred_username ||
     "Profile";
+
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+
+    setForm({
+      title: profile.title ?? "",
+      summary: profile.summary ?? "",
+      phone: profile.phone ?? "",
+      location: profile.location ?? "",
+    });
+    setProfileDeleted(false);
+  }, [profile]);
+
+  const handleFieldChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleSave = async (event) => {
+    event.preventDefault();
+    setFeedback({ tone: null, message: "" });
+
+    try {
+      await updateProfile(form);
+      setFeedback({ tone: "success", message: "Profile changes saved successfully." });
+    } catch {
+      setFeedback({ tone: "error", message: "We could not save the profile changes. Please retry." });
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      "Delete the local profile data for this account? You can recreate it later by loading the profile again while still authenticated.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setFeedback({ tone: null, message: "" });
+
+    try {
+      await deleteProfile();
+      setProfileDeleted(true);
+      setFeedback({
+        tone: "success",
+        message: "The local profile was deleted. If you reload, the backend can recreate it from your Keycloak account.",
+      });
+    } catch {
+      setFeedback({ tone: "error", message: "We could not delete the profile. Please retry." });
+    }
+  };
+
+  const handleRecreate = async () => {
+    setFeedback({ tone: null, message: "" });
+    await reload();
+  };
 
   if (loading) {
     return (
@@ -60,6 +141,26 @@ export function ProfilePage() {
     );
   }
 
+  if (profileDeleted && !profile) {
+    return (
+      <section className="space-y-8">
+        <div className="rounded-[2rem] border bg-card p-8 shadow-sm shadow-slate-900/5">
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">Profile</p>
+          <h1 className="mt-4 font-display text-4xl font-bold tracking-tight">Local profile deleted</h1>
+          <p className="mt-4 max-w-2xl text-muted-foreground">
+            The backend removed your local profile record. Because you are still authenticated with Keycloak, you can recreate it at any time by fetching the profile again.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button type="button" className="rounded-full" onClick={handleRecreate}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Recreate profile from API
+            </Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-8">
       <div className="rounded-[2rem] border bg-[radial-gradient(circle_at_top_right,_rgba(191,219,254,0.65),_transparent_35%),linear-gradient(135deg,_rgba(255,255,255,0.96),_rgba(248,250,252,0.9))] p-8 shadow-sm shadow-slate-900/5">
@@ -77,6 +178,18 @@ export function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {feedback.message ? (
+        <div
+          className={`rounded-3xl border px-5 py-4 text-sm shadow-sm shadow-slate-900/5 ${
+            feedback.tone === "error"
+              ? "border-destructive/20 bg-destructive/5 text-destructive"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}
+        >
+          {feedback.message}
+        </div>
+      ) : null}
 
       <div className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
         <div className="space-y-5">
@@ -96,6 +209,82 @@ export function ProfilePage() {
               {profile?.summary || "The backend created this profile successfully, but the summary is still empty."}
             </p>
           </div>
+
+          <form onSubmit={handleSave} className="rounded-[2rem] border bg-card p-6 shadow-sm shadow-slate-900/5">
+            <div className="flex items-center gap-3">
+              <PencilLine className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-2xl font-bold">Edit profile details</h2>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              This form is connected to `PUT /api/profile/me`, so you can now persist profile edits from the frontend.
+            </p>
+
+            <div className="mt-6 grid gap-5">
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-foreground">Title</span>
+                <input
+                  name="title"
+                  value={form.title}
+                  onChange={handleFieldChange}
+                  placeholder="Junior Full-Stack Developer"
+                  className="w-full rounded-2xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-semibold text-foreground">Summary</span>
+                <textarea
+                  name="summary"
+                  value={form.summary}
+                  onChange={handleFieldChange}
+                  rows={6}
+                  placeholder="Write the short introduction that should represent you across CV generations."
+                  className="w-full rounded-2xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                />
+              </label>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold text-foreground">Phone</span>
+                  <input
+                    name="phone"
+                    value={form.phone}
+                    onChange={handleFieldChange}
+                    placeholder="+212 ..."
+                    className="w-full rounded-2xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold text-foreground">Location</span>
+                  <input
+                    name="location"
+                    value={form.location}
+                    onChange={handleFieldChange}
+                    placeholder="Casablanca, Morocco"
+                    className="w-full rounded-2xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button type="submit" className="rounded-full" disabled={updating || deleting}>
+                {updating ? (
+                  <>
+                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save changes"
+                )}
+              </Button>
+              <Button type="button" variant="outline" className="rounded-full" onClick={reload} disabled={updating || deleting}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reset from API
+              </Button>
+            </div>
+          </form>
         </div>
 
         <div className="space-y-5">
@@ -106,11 +295,37 @@ export function ProfilePage() {
             <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
               <li>React is connected to Keycloak for login, sign up, and logout.</li>
               <li>Protected routes now sit behind the authenticated dashboard.</li>
-              <li>The profile page calls the backend with your bearer token.</li>
+              <li>The profile page can fetch, update, and delete the local profile.</li>
             </ul>
             <Button type="button" variant="outline" className="mt-6 w-full rounded-full" onClick={reload}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Refresh profile data
+            </Button>
+          </div>
+
+          <div className="rounded-[2rem] border border-destructive/20 bg-destructive/5 p-6 shadow-sm shadow-slate-900/5">
+            <div className="flex items-center gap-3">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              <h2 className="font-display text-2xl font-bold text-foreground">Danger zone</h2>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              This triggers `DELETE /api/profile/me`. In the current backend flow, deleting the local profile does not delete your Keycloak account.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-6 w-full rounded-full border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={handleDelete}
+              disabled={updating || deleting}
+            >
+              {deleting ? (
+                <>
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete local profile"
+              )}
             </Button>
           </div>
         </div>
