@@ -89,8 +89,9 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "AiCv
 // ==========================================
 // 6. AUTO-MIGRATION DE LA BASE DE DONNÉES
 // ==========================================
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    using var scope = app.Services.CreateScope();
     var services = scope.ServiceProvider;
     try
     {
@@ -106,3 +107,5 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+public partial class Program;
