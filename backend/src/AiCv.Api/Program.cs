@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using AiCv.Api.Data;
 using AiCv.Api.Modules.Profiles.Services;
+using AiCv.Api.Modules.Opportunities.Repositories;
+using AiCv.Api.Modules.Opportunities.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +19,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ==========================================
 builder.Services.AddScoped<AiCv.Api.Modules.Profiles.Repositories.ProfileRepository>();
 builder.Services.AddScoped<AiCv.Api.Modules.Profiles.Services.ProfileService>();
+// Opportunities
+builder.Services.AddScoped<OpportunityRepository>();
+builder.Services.AddScoped<OpportunityService>();
 
 // ==========================================
 // 3. CONFIGURATION DES CORS (POUR REACT)
@@ -53,6 +58,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             }
         };
     });
+
 
 builder.Services.AddControllers();
 builder.Services.AddAuthorization();
