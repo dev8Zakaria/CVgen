@@ -36,6 +36,19 @@ services:
       - keycloak
     networks:
       - aicv-network
+  
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: aicv-ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=Development
+      - OPENAI_API_KEY=${OPENAI_API_KEY} # La clé est injectée ici !
+    networks:
+      - aicv-network
 
   postgres:
     image: postgres:16

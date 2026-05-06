@@ -3,7 +3,7 @@ WORKDIR /src
 
 COPY AiCv.Backend.sln ./
 COPY src/AiCv.Api/AiCv.Api.csproj src/AiCv.Api/
-RUN dotnet restore AiCv.Backend.sln
+RUN dotnet restore src/AiCv.Api/AiCv.Api.csproj
 
 COPY src/ src/
 RUN dotnet publish src/AiCv.Api/AiCv.Api.csproj -c Release -o /app/publish --no-restore
