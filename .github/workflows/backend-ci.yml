@@ -36,3 +36,7 @@ jobs:
     # Étape D : Compiler le code pour vérifier qu'il n'y a pas d'erreurs
     - name: 🛠️ Compilation (Build)
       run: dotnet build ./backend/src/AiCv.Api/AiCv.Api.csproj --configuration Release --no-restore
+    
+    # Étape E : Exécuter les tests unitaires/intégration
+    - name: 🧪 Tests (Run)
+      run: dotnet test ./backend/AiCv.Backend.sln --configuration Release --no-build --verbosity normal
