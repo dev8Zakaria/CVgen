@@ -15,7 +15,7 @@ on:
 # 2. Que doit faire le pipeline ?
 jobs:
   build:
-    name: Build & Check
+    name: Build Backend
     runs-on: ubuntu-latest # Le serveur virtuel utilisé par GitHub
     
     steps:
@@ -31,12 +31,39 @@ jobs:
         
     # Étape C : Télécharger les packages NuGet
     - name: 📦 Restauration des dépendances
-      run: dotnet restore ./backend/src/AiCv.Api/AiCv.Api.csproj
+      run: dotnet restore ./backend/AiCv.Backend.sln
       
     # Étape D : Compiler le code pour vérifier qu'il n'y a pas d'erreurs
     - name: 🛠️ Compilation (Build)
-      run: dotnet build ./backend/src/AiCv.Api/AiCv.Api.csproj --configuration Release --no-restore
-    
-    # Étape E : Exécuter les tests unitaires/intégration
+      run: dotnet build ./backend/AiCv.Backend.sln --configuration Release --no-restore
+
+    # Étape E : Partager le backend déjà restauré et compilé avec le job de test
+    - name: 📦 Upload backend artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-build-workspace
+        path: backend
+        if-no-files-found: error
+
+  test:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    # Étape A : Installer le SDK .NET 10
+    - name: ⚙️ Configuration de .NET 10
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    # Étape B : Récupérer le backend déjà restauré et compilé
+    - name: 📥 Download backend artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-build-workspace
+        path: .
+
+    # Étape C : Exécuter les tests sans recompiler
     - name: 🧪 Tests (Run)
       run: dotnet test ./backend/AiCv.Backend.sln --configuration Release --no-build --verbosity normal
