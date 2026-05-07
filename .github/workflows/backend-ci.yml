@@ -62,7 +62,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: backend-build-workspace
-        path: .
+        path: backend
 
     # Étape C : Exécuter les tests sans recompiler
     - name: 🧪 Tests (Run)
