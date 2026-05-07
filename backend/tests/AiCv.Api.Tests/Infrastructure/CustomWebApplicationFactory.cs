@@ -2,6 +2,8 @@ using AiCv.Api.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+// ⬇️ hadi hia la ligne li 5sni darori nzida 3andi bax mayb9axi 3andi erreur
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace AiCv.Api.Tests.Infrastructure;
