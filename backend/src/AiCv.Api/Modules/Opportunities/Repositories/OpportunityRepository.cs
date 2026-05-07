@@ -51,6 +51,11 @@ public class OpportunityRepository
         _context.JobOfferAnalyses.Remove(analysis);
     }
 
+    public async Task AddAnalysisAsync(JobOfferAnalysis analysis)
+    {
+        await _context.JobOfferAnalyses.AddAsync(analysis);
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

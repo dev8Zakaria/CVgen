@@ -6,6 +6,7 @@ export function useOpportunities() {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -102,6 +103,67 @@ export function useOpportunities() {
     }
   };
 
+  const analyzeOpportunity = async (id) => {
+    setAnalyzing(true);
+    setError(null);
+
+    const processingTimestamp = new Date().toISOString();
+    setOpportunities((current) =>
+      current.map((opportunity) =>
+        opportunity.id === id
+          ? {
+              ...opportunity,
+              analysisStatus: "processing",
+              updatedAt: processingTimestamp,
+            }
+          : opportunity,
+      ),
+    );
+    setSelectedOpportunity((current) =>
+      current?.id === id
+        ? {
+            ...current,
+            analysisStatus: "processing",
+            updatedAt: processingTimestamp,
+          }
+        : current,
+    );
+
+    try {
+      const response = await opportunityService.analyzeOpportunity(id);
+      setOpportunities((current) =>
+        current.map((opportunity) => (opportunity.id === response.data.id ? toListItem(response.data) : opportunity)),
+      );
+      setSelectedOpportunity(response.data);
+      return response.data;
+    } catch (requestError) {
+      setOpportunities((current) =>
+        current.map((opportunity) =>
+          opportunity.id === id
+            ? {
+                ...opportunity,
+                analysisStatus: "failed",
+                updatedAt: new Date().toISOString(),
+              }
+            : opportunity,
+        ),
+      );
+      setSelectedOpportunity((current) =>
+        current?.id === id
+          ? {
+              ...current,
+              analysisStatus: "failed",
+              updatedAt: new Date().toISOString(),
+            }
+          : current,
+      );
+      setError(requestError);
+      throw requestError;
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   const deleteOpportunity = async (id) => {
     setDeleting(true);
     setError(null);
@@ -126,6 +188,7 @@ export function useOpportunities() {
     opportunities,
     loading,
     creating,
+    analyzing,
     updating,
     deleting,
     detailLoading,
@@ -134,6 +197,7 @@ export function useOpportunities() {
     reload: loadOpportunities,
     loadOpportunityDetail,
     createOpportunity,
+    analyzeOpportunity,
     updateOpportunity,
     deleteOpportunity,
   };

@@ -76,6 +76,7 @@ export function OpportunitiesPage() {
     opportunities,
     loading,
     creating,
+    analyzing,
     updating,
     deleting,
     detailLoading,
@@ -84,6 +85,7 @@ export function OpportunitiesPage() {
     reload,
     loadOpportunityDetail,
     createOpportunity,
+    analyzeOpportunity,
     updateOpportunity,
     deleteOpportunity,
   } = useOpportunities();
@@ -208,6 +210,28 @@ export function OpportunitiesPage() {
       setFeedback({
         tone: "error",
         message: "We could not save the job offer changes. Please retry.",
+      });
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!selectedOpportunity) {
+      return;
+    }
+
+    setFeedback({ tone: null, message: "" });
+
+    try {
+      const analyzed = await analyzeOpportunity(selectedOpportunity.id);
+      setFeedback({
+        tone: "success",
+        message: `AI analysis completed for "${analyzed.title}". The new enrichment is now available below.`,
+      });
+    } catch {
+      await loadOpportunityDetail(selectedOpportunity.id).catch(() => {});
+      setFeedback({
+        tone: "error",
+        message: `We could not complete AI analysis for "${selectedOpportunity.title}". Check the AI service and retry.`,
       });
     }
   };
@@ -450,6 +474,41 @@ export function OpportunitiesPage() {
                   <AnalysisCard title="Updated at" icon={Clock3}>
                     <p className="text-foreground">{formatDate(selectedOpportunity.updatedAt)}</p>
                   </AnalysisCard>
+                </div>
+
+                <div className="rounded-[2rem] border bg-background p-5">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary">AI action</p>
+                      <h3 className="mt-2 font-display text-2xl font-bold">Run analysis on this raw job offer</h3>
+                      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                        Trigger the backend AI analyzer to extract keywords and skills from the saved description. Running analysis again refreshes the enrichment from the latest raw input.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      className="rounded-full"
+                      onClick={handleAnalyze}
+                      disabled={analyzing || updating || deleting || detailLoading}
+                    >
+                      {analyzing ? (
+                        <>
+                          <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : selectedAnalysis ? (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Re-run AI analysis
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Run AI analysis
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 <form onSubmit={handleUpdate} className="rounded-[2rem] border bg-background p-5">

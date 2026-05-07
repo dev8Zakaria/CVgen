@@ -1,3 +1,6 @@
+using System.Text.Json;
+using AiCv.Api.Modules.Ai;
+using AiCv.Api.Modules.Ai.DTOs;
 using AiCv.Api.Modules.Opportunities.DTOs;
 using AiCv.Api.Modules.Opportunities.Entities;
 using AiCv.Api.Modules.Opportunities.Repositories;
@@ -7,10 +10,12 @@ namespace AiCv.Api.Modules.Opportunities.Services;
 public class OpportunityService
 {
     private readonly OpportunityRepository _repository;
+    private readonly IAiService _aiService;
 
-    public OpportunityService(OpportunityRepository repository)
+    public OpportunityService(OpportunityRepository repository, IAiService aiService)
     {
         _repository = repository;
+        _aiService = aiService;
     }
 
     public async Task<OpportunityResponseDto?> CreateAsync(string keycloakId, CreateOpportunityDto dto)
@@ -119,9 +124,74 @@ public class OpportunityService
         return true;
     }
 
+    public async Task<OpportunityResponseDto?> AnalyzeAsync(Guid id, string keycloakId, CancellationToken cancellationToken = default)
+    {
+        var userId = await ResolveUserIdAsync(keycloakId);
+        if (userId is null)
+        {
+            return null;
+        }
+
+        var jobOffer = await _repository.GetByIdAndUserIdAsync(id, userId.Value);
+        if (jobOffer is null)
+        {
+            return null;
+        }
+
+        jobOffer.AnalysisStatus = "processing";
+        jobOffer.UpdatedAt = DateTime.UtcNow;
+        await _repository.SaveChangesAsync();
+
+        try
+        {
+            var aiResponse = await _aiService.AnalyzeJobAsync(jobOffer.Description, cancellationToken);
+            await UpsertAnalysisAsync(jobOffer, aiResponse);
+
+            jobOffer.AnalysisStatus = "completed";
+            jobOffer.UpdatedAt = DateTime.UtcNow;
+            await _repository.SaveChangesAsync();
+
+            return MapToResponseDto(jobOffer);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException or AiAnalysisFailedException)
+        {
+            jobOffer.AnalysisStatus = "failed";
+            jobOffer.UpdatedAt = DateTime.UtcNow;
+            await _repository.SaveChangesAsync();
+
+            throw new AiAnalysisFailedException("AI analysis failed for this job offer.", exception);
+        }
+    }
+
     private Task<Guid?> ResolveUserIdAsync(string keycloakId)
     {
         return _repository.GetUserIdByKeycloakIdAsync(keycloakId);
+    }
+
+    private async Task UpsertAnalysisAsync(JobOffer jobOffer, AnalyzeJobResponseDto aiResponse)
+    {
+        var analysis = jobOffer.Analysis;
+        if (analysis is null)
+        {
+            analysis = new JobOfferAnalysis
+            {
+                JobOfferId = jobOffer.Id,
+            };
+
+            await _repository.AddAnalysisAsync(analysis);
+            jobOffer.Analysis = analysis;
+        }
+
+        analysis.ExtractedKeywords = aiResponse.ExtractedKeywords;
+        analysis.ExtractedSkills = aiResponse.SuggestedSkills;
+        analysis.ExtractedResponsibilities = [];
+        analysis.DetectedExperienceLevel = string.Empty;
+        analysis.DetectedLocation = string.Empty;
+        analysis.DetectedContractType = string.Empty;
+        analysis.DetectedTechnologies = [];
+        analysis.AnalysisSummary = $"Estimated match score: {aiResponse.MatchScoreEstimation}%";
+        analysis.RawAnalysisJson = JsonSerializer.Serialize(aiResponse);
+        analysis.CreatedAt = DateTime.UtcNow;
     }
 
     private static OpportunityResponseDto MapToResponseDto(JobOffer jobOffer) => new()

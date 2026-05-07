@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using AiCv.Api.Data;
+using AiCv.Api.Modules.Ai;
 using AiCv.Api.Modules.Profiles.Services;
 using AiCv.Api.Modules.Opportunities.Repositories;
 using AiCv.Api.Modules.Opportunities.Services;
@@ -19,6 +20,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ==========================================
 builder.Services.AddScoped<AiCv.Api.Modules.Profiles.Repositories.ProfileRepository>();
 builder.Services.AddScoped<AiCv.Api.Modules.Profiles.Services.ProfileService>();
+builder.Services.AddHttpClient<IAiService, AiService>(client =>
+{
+    var baseUrl = builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000";
+    client.BaseAddress = new Uri(baseUrl);
+});
 // Opportunities
 builder.Services.AddScoped<OpportunityRepository>();
 builder.Services.AddScoped<OpportunityService>();

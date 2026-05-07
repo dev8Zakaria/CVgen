@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using AiCv.Api.Data;
+using AiCv.Api.Modules.Ai;
 using AiCv.Api.Modules.Opportunities.DTOs;
 using AiCv.Api.Modules.Opportunities.Entities;
 using AiCv.Api.Tests.Infrastructure;
@@ -16,6 +17,7 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
     public OpportunityEndpointsTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
+        _factory.FakeAiService.Reset();
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -422,5 +424,58 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
 
         var response = await clientB.DeleteAsync($"/api/opportunity/{created.Id}");
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Analyze_WithValidId_PersistsAnalysisAndReturnsCompletedStatus()
+    {
+        var client = _factory.CreateClient()
+            .WithTestAuth(subject: $"opportunity-{Guid.NewGuid()}");
+
+        await InitUserAsync(client);
+        var created = await CreateOpportunityAsync(client);
+
+        var response = await client.PostAsync($"/api/opportunity/{created.Id}/analyze", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var analyzed = await response.Content.ReadFromJsonAsync<OpportunityResponseDto>();
+        analyzed.Should().NotBeNull();
+        analyzed!.AnalysisStatus.Should().Be("completed");
+        analyzed.Analysis.Should().NotBeNull();
+        analyzed.Analysis!.ExtractedKeywords.Should().Contain(["FastAPI", "Docker"]);
+        analyzed.Analysis.ExtractedSkills.Should().Contain(["C#", "Python"]);
+        analyzed.Analysis.AnalysisSummary.Should().Be("Estimated match score: 85%");
+    }
+
+    [Fact]
+    public async Task Analyze_WhenAiFails_MarksOpportunityAsFailed()
+    {
+        _factory.FakeAiService.ExceptionToThrow = new AiAnalysisFailedException("Mock AI failure.");
+
+        var client = _factory.CreateClient()
+            .WithTestAuth(subject: $"opportunity-{Guid.NewGuid()}");
+
+        await InitUserAsync(client);
+        var created = await CreateOpportunityAsync(client);
+
+        var response = await client.PostAsync($"/api/opportunity/{created.Id}/analyze", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var jobOffer = await db.JobOffers.FindAsync(created.Id);
+        jobOffer.Should().NotBeNull();
+        jobOffer!.AnalysisStatus.Should().Be("failed");
+    }
+
+    [Fact]
+    public async Task Analyze_WithoutToken_Returns401()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsync($"/api/opportunity/{Guid.NewGuid()}/analyze", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 }

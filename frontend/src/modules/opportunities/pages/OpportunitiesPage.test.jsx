@@ -16,6 +16,7 @@ describe("OpportunitiesPage", () => {
       opportunities: [],
       loading: false,
       creating: false,
+      analyzing: false,
       updating: false,
       deleting: false,
       detailLoading: false,
@@ -24,6 +25,7 @@ describe("OpportunitiesPage", () => {
       reload: vi.fn(),
       loadOpportunityDetail: vi.fn(),
       createOpportunity: vi.fn(),
+      analyzeOpportunity: vi.fn(),
       updateOpportunity: vi.fn(),
       deleteOpportunity: vi.fn(),
     });
@@ -64,6 +66,7 @@ describe("OpportunitiesPage", () => {
       ],
       loading: false,
       creating: false,
+      analyzing: false,
       updating: false,
       deleting: false,
       detailLoading: false,
@@ -94,6 +97,7 @@ describe("OpportunitiesPage", () => {
       reload: vi.fn(),
       loadOpportunityDetail: vi.fn(),
       createOpportunity,
+      analyzeOpportunity: vi.fn(),
       updateOpportunity: vi.fn(),
       deleteOpportunity: vi.fn(),
     });
@@ -115,5 +119,75 @@ describe("OpportunitiesPage", () => {
     expect(screen.getByText("TypeScript")).toBeInTheDocument();
     expect(screen.getByText("Frontend-focused role.")).toBeInTheDocument();
     expect(screen.queryByDisplayValue("Mid-level")).not.toBeInTheDocument();
+  });
+
+  it("triggers AI analysis from the selected opportunity detail", async () => {
+    const user = userEvent.setup();
+    const analyzeOpportunity = vi.fn().mockResolvedValue({
+      id: "offer-1",
+      title: "Frontend Engineer",
+      companyName: "OpenAI",
+      description: "Build product experiences around AI.",
+      analysisStatus: "completed",
+      createdAt: "2026-05-05T10:00:00Z",
+      updatedAt: "2026-05-05T11:30:00Z",
+      analysis: {
+        id: "analysis-1",
+        jobOfferId: "offer-1",
+        extractedSkills: ["React", "TypeScript"],
+        extractedKeywords: ["frontend", "design systems"],
+        extractedResponsibilities: [],
+        detectedExperienceLevel: "",
+        detectedLocation: "",
+        detectedContractType: "",
+        detectedTechnologies: [],
+        analysisSummary: "Estimated match score: 85%",
+        rawAnalysisJson: "{}",
+        createdAt: "2026-05-05T12:00:00Z",
+      },
+    });
+
+    mockUseOpportunities.mockReturnValue({
+      opportunities: [
+        {
+          id: "offer-1",
+          title: "Frontend Engineer",
+          companyName: "OpenAI",
+          analysisStatus: "pending",
+          createdAt: "2026-05-05T10:00:00Z",
+          updatedAt: "2026-05-05T10:00:00Z",
+        },
+      ],
+      loading: false,
+      creating: false,
+      analyzing: false,
+      updating: false,
+      deleting: false,
+      detailLoading: false,
+      selectedOpportunity: {
+        id: "offer-1",
+        title: "Frontend Engineer",
+        companyName: "OpenAI",
+        description: "Build product experiences around AI.",
+        analysisStatus: "pending",
+        createdAt: "2026-05-05T10:00:00Z",
+        updatedAt: "2026-05-05T10:00:00Z",
+        analysis: null,
+      },
+      error: null,
+      reload: vi.fn(),
+      loadOpportunityDetail: vi.fn(),
+      createOpportunity: vi.fn(),
+      analyzeOpportunity,
+      updateOpportunity: vi.fn(),
+      deleteOpportunity: vi.fn(),
+    });
+
+    render(<OpportunitiesPage />);
+
+    await user.click(screen.getByRole("button", { name: /run ai analysis/i }));
+
+    expect(analyzeOpportunity).toHaveBeenCalledWith("offer-1");
+    expect(screen.getByText(/AI analysis completed for "Frontend Engineer"/i)).toBeInTheDocument();
   });
 });

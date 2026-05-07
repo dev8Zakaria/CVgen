@@ -107,4 +107,32 @@ public class OpportunityController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPost("{id:guid}/analyze")]
+    public async Task<IActionResult> Analyze(Guid id, CancellationToken cancellationToken)
+    {
+        var keycloakId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(keycloakId))
+        {
+            return Unauthorized("Token invalide ou utilisateur introuvable.");
+        }
+
+        try
+        {
+            var result = await _opportunityService.AnalyzeAsync(id, keycloakId, cancellationToken);
+            if (result is null)
+            {
+                return NotFound($"Opportunité {id} introuvable.");
+            }
+
+            return Ok(result);
+        }
+        catch (AiCv.Api.Modules.Ai.AiAnalysisFailedException exception)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                message = exception.Message,
+            });
+        }
+    }
 }
