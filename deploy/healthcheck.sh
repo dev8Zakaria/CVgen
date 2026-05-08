@@ -66,9 +66,9 @@ check_url() {
 
 check_running_services
 
-FRONTEND_HEALTH_URL="${FRONTEND_HEALTH_URL:- http://localhost:5173}"
+FRONTEND_HEALTH_URL="${FRONTEND_HEALTH_URL:-http://localhost:5173}"
 BACKEND_HEALTH_URL="${BACKEND_HEALTH_URL:-http://localhost:5000/health}"
-AI_HEALTH_URL="${AI_HEALTH_URL:-}"
+AI_HEALTH_URL="${AI_HEALTH_URL:-http://localhost:8000/health}"
 KEYCLOAK_HEALTH_URL="${KEYCLOAK_HEALTH_URL:-http://localhost:8080}"
 
 log "Vérification des URLs HTTP..."
