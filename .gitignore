@@ -6,3 +6,4 @@ dist/
 backups/
 *.sql
 *.sql.gz
+.vscode
