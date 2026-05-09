@@ -46,14 +46,14 @@ export function DashboardPage() {
         <StatCard label="Current Focus" value={recentOffers[0]?.companyName || "Profile"} meta="Move from role analysis to CV generation with one click." accent="Live" />
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="paper-panel p-6">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-4 border-b pb-4">
             <div>
-              <p className="font-mono text-[0.68rem] uppercase tracking-[0.3em] text-muted-foreground">Recent Activity</p>
-              <h2 className="mt-3 font-display text-3xl tracking-[-0.04em] text-foreground">Last generated CVs</h2>
+              <p className="text-sm font-medium text-muted-foreground">Recent Activity</p>
+              <h2 className="mt-1 font-display text-2xl font-bold text-foreground">Last generated CVs</h2>
             </div>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" size="sm">
               <Link to={ROUTES.cvs}>View all</Link>
             </Button>
           </div>
@@ -75,11 +75,11 @@ export function DashboardPage() {
                 <Link
                   key={cv.id}
                   to={getCvPreviewRoute(cv.id)}
-                  className="flex items-center justify-between rounded-[26px] border border-border bg-white/70 p-5 transition hover:translate-x-1 hover:border-primary/20 hover:bg-white dark:bg-white/[0.03]"
+                  className="flex items-center justify-between rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-muted/50"
                 >
                   <div>
                     <p className="font-semibold text-foreground">{cv.jobTitle}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{cv.companyName}</p>
+                    <p className="text-sm text-muted-foreground">{cv.companyName}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <StatusPill tone="primary">{cv.template}</StatusPill>
@@ -91,47 +91,51 @@ export function DashboardPage() {
           )}
         </div>
 
-        <div className="grid gap-5">
+        <div className="grid gap-6">
           <div className="paper-panel p-6">
-            <div className="flex items-center gap-3">
-              <Clock3 className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-3 border-b pb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Clock3 className="h-5 w-5 text-primary" />
+              </div>
               <div>
-                <p className="font-mono text-[0.68rem] uppercase tracking-[0.3em] text-muted-foreground">Profile Completeness</p>
-                <h2 className="mt-2 font-display text-3xl tracking-[-0.04em] text-foreground">Everything required to generate premium CVs.</h2>
+                <p className="text-sm font-medium text-muted-foreground">Profile Completeness</p>
+                <h2 className="font-display text-xl font-bold text-foreground">Premium CV Requirements</h2>
               </div>
             </div>
-            <p className="mt-4 text-sm leading-7 text-muted-foreground">
+            <p className="mt-4 text-sm text-muted-foreground">
               Personal data, experience, projects, and certifications are all editable inside the profile studio.
             </p>
-            <Button asChild variant="outline" className="mt-5">
+            <Button asChild variant="secondary" className="mt-6 w-full">
               <Link to={ROUTES.profile}>Open profile studio</Link>
             </Button>
           </div>
 
           <div className="paper-panel p-6">
-            <div className="flex items-center gap-3">
-              <BriefcaseBusiness className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-3 border-b pb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <BriefcaseBusiness className="h-5 w-5 text-primary" />
+              </div>
               <div>
-                <p className="font-mono text-[0.68rem] uppercase tracking-[0.3em] text-muted-foreground">Tracked Offers</p>
-                <h2 className="mt-2 font-display text-3xl tracking-[-0.04em] text-foreground">Latest opportunities</h2>
+                <p className="text-sm font-medium text-muted-foreground">Tracked Offers</p>
+                <h2 className="font-display text-xl font-bold text-foreground">Latest Opportunities</h2>
               </div>
             </div>
-            <div className="mt-5 space-y-3">
+            <div className="mt-6 space-y-3">
               {recentOffers.map((offer) => (
                 <Link
                   key={offer.id}
                   to={getJobAnalysisRoute(offer.id)}
-                  className="flex items-center justify-between rounded-[24px] border border-border bg-white/70 p-4 transition hover:border-primary/20 dark:bg-white/[0.03]"
+                  className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm transition-colors hover:bg-muted/50"
                 >
                   <div>
-                    <p className="font-semibold text-foreground">{offer.jobTitle}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{offer.companyName}</p>
+                    <p className="font-medium text-foreground">{offer.jobTitle}</p>
+                    <p className="text-xs text-muted-foreground">{offer.companyName}</p>
                   </div>
                   <StatusPill tone="success">Analyzed</StatusPill>
                 </Link>
               ))}
             </div>
-            <Button asChild variant="outline" className="mt-5">
+            <Button asChild variant="outline" className="mt-6 w-full">
               <Link to={ROUTES.opportunities}>
                 Manage job offers
                 <ArrowRight className="ml-2 h-4 w-4" />

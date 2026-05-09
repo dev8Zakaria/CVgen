@@ -52,35 +52,35 @@ export function OpportunitiesPage() {
           }
         />
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           {jobOffers.map((offer) => (
-            <div key={offer.id} className="paper-panel grain-card p-6">
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div key={offer.id} className="paper-panel p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="font-display text-3xl tracking-[-0.04em] text-foreground">{offer.jobTitle}</h2>
+                    <h2 className="font-display text-2xl font-bold text-foreground">{offer.jobTitle}</h2>
                     <StatusPill tone="success">{offer.status}</StatusPill>
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <p className="mt-1 text-sm font-medium text-muted-foreground">
                     {offer.companyName} · {offer.location} · Added {formatDate(offer.createdAt)}
                   </p>
-                  <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground">{offer.description}</p>
-                  <div className="mt-5 flex flex-wrap gap-2">
+                  <p className="mt-3 max-w-4xl text-sm leading-relaxed text-foreground">{offer.description}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {offer.analysis?.extractedSkills.slice(0, 4).map((skill) => (
-                      <StatusPill key={skill} tone="primary">
+                      <StatusPill key={skill} tone="secondary">
                         {skill}
                       </StatusPill>
                     ))}
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex shrink-0 flex-wrap gap-3 mt-4 lg:mt-0">
                   <Button asChild variant="outline">
                     <Link to={getJobAnalysisRoute(offer.id)}>
                       View Analysis
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setPendingDelete(offer)}>
+                  <Button type="button" variant="destructive" onClick={() => setPendingDelete(offer)}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
                   </Button>

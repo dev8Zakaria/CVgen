@@ -6,14 +6,14 @@ import { cn } from "@/shared/utils/cn";
 
 export function AppLogo({ compact = false }) {
   return (
-    <Link to="/" className="flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-gradient-to-br from-primary via-blue-500 to-accent text-primary-foreground shadow-[0_18px_36px_rgba(37,99,235,0.24)]">
-        <span className="font-display text-lg font-bold uppercase tracking-[0.14em]">CV</span>
+    <Link to="/" className="flex items-center gap-3 group">
+      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm transition-transform group-hover:scale-105">
+        <span className="font-display text-lg font-bold">CV</span>
       </div>
       {!compact ? (
-        <div>
-          <p className="font-mono text-[0.68rem] uppercase tracking-[0.3em] text-primary/80">AI CV Generator</p>
-          <p className="font-display text-[1.35rem] font-bold tracking-[-0.05em] text-foreground">Career OS</p>
+        <div className="flex flex-col">
+          <p className="font-display text-xl font-bold tracking-tight text-foreground">Career OS</p>
+          <p className="text-[0.7rem] font-medium text-muted-foreground">AI CV Generator</p>
         </div>
       ) : null}
     </Link>
@@ -30,12 +30,12 @@ export function ThemeToggle({ theme, toggleTheme }) {
 
 export function StatusPill({ children, tone = "default", className }) {
   const toneMap = {
-    default: "border-border bg-white/70 text-muted-foreground dark:bg-white/[0.04]",
-    success: "border-success/20 bg-success/10 text-success",
-    warning: "border-warning/20 bg-warning/15 text-warning-foreground",
-    danger: "border-destructive/20 bg-destructive/10 text-destructive",
-    accent: "border-accent/20 bg-accent/10 text-accent-foreground",
-    primary: "border-primary/20 bg-primary/10 text-primary",
+    default: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+    success: "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+    warning: "border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400",
+    danger: "border-transparent bg-destructive/15 text-destructive",
+    accent: "border-transparent bg-primary/10 text-primary",
+    primary: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
   };
 
   return <span className={cn("pill", toneMap[tone], className)}>{children}</span>;
@@ -43,30 +43,30 @@ export function StatusPill({ children, tone = "default", className }) {
 
 export function SectionHeading({ eyebrow, title, description, action, className }) {
   return (
-    <div className={cn("flex flex-col gap-5 md:flex-row md:items-end md:justify-between", className)}>
-      <div className="space-y-3">
-        {eyebrow ? <p className="font-mono text-[0.72rem] uppercase tracking-[0.3em] text-primary/80">{eyebrow}</p> : null}
+    <div className={cn("flex flex-col gap-4 md:flex-row md:items-end md:justify-between animate-reveal", className)}>
+      <div className="space-y-1.5">
+        {eyebrow ? <p className="text-sm font-semibold text-primary">{eyebrow}</p> : null}
         <div>
-          <h1 className="max-w-4xl font-display text-4xl font-bold tracking-[-0.06em] text-foreground md:text-5xl">{title}</h1>
-          {description ? <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{description}</p> : null}
+          <h1 className="max-w-4xl font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl">{title}</h1>
+          {description ? <p className="mt-2 max-w-2xl text-base text-muted-foreground">{description}</p> : null}
         </div>
       </div>
-      {action ? <div className="flex shrink-0 items-center gap-3">{action}</div> : null}
+      {action ? <div className="flex shrink-0 items-center gap-3 pt-4 md:pt-0">{action}</div> : null}
     </div>
   );
 }
 
 export function StatCard({ label, value, meta, accent, className }) {
   return (
-    <div className={cn("paper-panel grain-card p-6", className)}>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-[0.7rem] uppercase tracking-[0.28em] text-primary/80">{label}</p>
-          <p className="mt-3 font-display text-5xl font-bold tracking-[-0.07em] text-foreground">{value}</p>
-        </div>
-        {accent ? <div className="rounded-xl border border-primary/15 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{accent}</div> : null}
+    <div className={cn("paper-panel p-6", className)}>
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        {accent ? <div className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground">{accent}</div> : null}
       </div>
-      {meta ? <p className="mt-4 text-sm leading-6 text-muted-foreground">{meta}</p> : null}
+      <div className="mt-4">
+        <p className="font-display text-4xl font-bold">{value}</p>
+        {meta ? <p className="mt-1 text-sm text-muted-foreground">{meta}</p> : null}
+      </div>
     </div>
   );
 }

@@ -48,10 +48,10 @@ export function DashboardLayout() {
               key={item.label}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-primary text-primary-foreground shadow-[0_18px_40px_rgba(37,99,235,0.26)]"
-                    : "text-muted-foreground hover:bg-slate-900/[0.04] hover:text-foreground dark:hover:bg-white/[0.04]"
+                    ? "bg-secondary text-secondary-foreground"
+                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                 }`
               }
             >
@@ -72,20 +72,19 @@ export function DashboardLayout() {
       </aside>
 
       <div className="min-w-0">
-        <header className="border-b border-border/70 bg-white/52 px-6 py-5 backdrop-blur-xl dark:bg-slate-950/55 md:px-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <header className="sticky top-0 z-10 flex h-16 items-center border-b bg-background/95 px-6 backdrop-blur md:px-8">
+          <div className="flex w-full items-center justify-between">
             <div>
-              <p className="font-mono text-[0.68rem] uppercase tracking-[0.32em] text-primary/80">AI CV Generator Platform</p>
-              <h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.06em] text-foreground">Welcome back, {displayName.split(" ")[0]}</h1>
+              <h1 className="font-display text-lg font-semibold tracking-tight text-foreground">Welcome, {displayName.split(" ")[0]}</h1>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="hidden items-center gap-2 rounded-2xl border border-border bg-white/72 px-4 py-2 text-sm text-muted-foreground dark:bg-slate-950/45 md:flex">
+            <div className="flex items-center gap-4">
+              <div className="hidden items-center gap-2 text-sm text-muted-foreground md:flex">
                 <Bell className="h-4 w-4" />
                 Notifications
               </div>
               <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-              <div className="flex h-11 min-w-11 items-center justify-center rounded-2xl bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-[0_16px_34px_rgba(37,99,235,0.24)]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
                 {initials}
               </div>
             </div>

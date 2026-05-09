@@ -93,21 +93,23 @@ export function GenerateCvPage() {
 
       {currentStep === 0 ? (
         <div className="paper-panel p-6">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-3 border-b pb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+            </div>
             <div>
-              <h2 className="font-display text-3xl tracking-[-0.04em] text-foreground">Step 1: Select profile data</h2>
-              <p className="mt-2 text-sm leading-7 text-muted-foreground">The generator will use your current profile details as the foundation.</p>
+              <h2 className="font-display text-xl font-bold text-foreground">Step 1: Select profile data</h2>
+              <p className="text-sm text-muted-foreground">The generator will use your current profile details as the foundation.</p>
             </div>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <div className="rounded-[24px] border border-border bg-white/60 p-5 dark:bg-white/[0.03]">
+            <div className="rounded-lg border bg-card p-5 shadow-sm">
               <p className="font-semibold text-foreground">{profile.fullName}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{profile.professionalTitle}</p>
-              <p className="mt-4 text-sm leading-7 text-muted-foreground">{profile.summary}</p>
+              <p className="text-sm text-muted-foreground">{profile.professionalTitle}</p>
+              <p className="mt-3 text-sm text-muted-foreground">{profile.summary}</p>
             </div>
-            <div className="rounded-[24px] border border-border bg-white/60 p-5 dark:bg-white/[0.03]">
-              <p className="font-mono text-[0.68rem] uppercase tracking-[0.3em] text-muted-foreground">Included Sections</p>
+            <div className="rounded-lg border bg-card p-5 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Included Sections</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <StatusPill tone="primary">{profile.experience.length} experiences</StatusPill>
                 <StatusPill tone="primary">{profile.education.length} education entries</StatusPill>
@@ -130,11 +132,13 @@ export function GenerateCvPage() {
 
       {currentStep === 1 ? (
         <div className="paper-panel p-6">
-          <div className="flex items-center gap-3">
-            <Bot className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-3 border-b pb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <Bot className="h-5 w-5 text-primary" />
+            </div>
             <div>
-              <h2 className="font-display text-3xl tracking-[-0.04em] text-foreground">Step 2: Select job offer</h2>
-              <p className="mt-2 text-sm leading-7 text-muted-foreground">Choose the analyzed job offer that should guide the CV content.</p>
+              <h2 className="font-display text-xl font-bold text-foreground">Step 2: Select job offer</h2>
+              <p className="text-sm text-muted-foreground">Choose the analyzed job offer that should guide the CV content.</p>
             </div>
           </div>
           <div className="mt-6 grid gap-4">
@@ -143,16 +147,16 @@ export function GenerateCvPage() {
                 key={offer.id}
                 type="button"
                 onClick={() => setSelectedOfferId(offer.id)}
-                className={`rounded-[24px] border p-5 text-left transition ${
+                className={`rounded-lg border p-4 text-left transition-all ${
                   selectedOfferId === offer.id
-                    ? "border-primary/30 bg-primary/10"
-                    : "border-border bg-white/60 hover:border-primary/20 dark:bg-white/[0.03]"
+                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                    : "bg-card hover:border-primary/50 hover:bg-muted/50"
                 }`}
               >
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="font-semibold text-foreground">{offer.jobTitle}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{offer.companyName} · {offer.location}</p>
+                    <p className="text-sm text-muted-foreground">{offer.companyName} · {offer.location}</p>
                   </div>
                   <StatusPill tone="success">{offer.analysis.matchScore}% match</StatusPill>
                 </div>

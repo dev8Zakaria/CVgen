@@ -56,13 +56,13 @@ export function ProfilePage() {
         }
       />
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         <StatCard label="Experience Entries" value={profile.experience.length} meta="Your most relevant roles should be tight, evidence-based, and recent." />
         <StatCard label="Core Skills" value={profile.skills.length} meta="Skills become matched and missing signals inside job analysis." />
         <StatCard label="Projects & Proof" value={profile.projects.length} meta="Projects strengthen credibility and expand the narrative beyond titles." />
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="paper-panel p-6">
           <SectionHeading
             eyebrow="Profile Core"

@@ -67,28 +67,24 @@ export default {
         body: ['"Manrope"', "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ['"IBM Plex Mono"', "ui-monospace", "monospace"],
       },
-      boxShadow: {
-        aura: "0 28px 90px rgba(37, 99, 235, 0.14)",
-        card: "0 18px 60px rgba(15, 23, 42, 0.08)",
-      },
       keyframes: {
-        float: {
-          "0%, 100%": { transform: "translateY(0px)" },
-          "50%": { transform: "translateY(-8px)" },
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
         reveal: {
-          from: { opacity: "0", transform: "translateY(18px)" },
-          to: { opacity: "1", transform: "translateY(0px)" },
-        },
-        shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
         },
       },
       animation: {
-        float: "float 7s ease-in-out infinite",
-        reveal: "reveal 700ms cubic-bezier(0.16, 1, 0.3, 1) both",
-        shimmer: "shimmer 2s linear infinite",
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        reveal: "reveal 0.4s ease-out forwards",
       },
     },
   },
