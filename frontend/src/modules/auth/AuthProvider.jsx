@@ -39,8 +39,10 @@ export function AuthProvider({ children }) {
       initialized,
       authenticated,
       token: keycloak?.token,
-      login: () => keycloak?.login(),
-      logout: () => keycloak?.logout(),
+      user: keycloak?.tokenParsed ?? null,
+      login: (options) => keycloak?.login(options),
+      logout: (options) => keycloak?.logout(options),
+      register: (options) => keycloak?.register(options),
     }),
     [authenticated, initialized],
   );

@@ -5,7 +5,11 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{07AEF9EF-11E0-4FF5-9827-11D85EA7E8F9}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiCv.Api", "src\AiCv.Api\AiCv.Api.csproj", "{09F0AFC1-DF6D-4581-B483-FC96444850F6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiCv.Api.Tests", "tests\AiCv.Api.Tests\AiCv.Api.Tests.csproj", "{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,11 +33,24 @@ Global
 		{09F0AFC1-DF6D-4581-B483-FC96444850F6}.Release|x64.Build.0 = Release|Any CPU
 		{09F0AFC1-DF6D-4581-B483-FC96444850F6}.Release|x86.ActiveCfg = Release|Any CPU
 		{09F0AFC1-DF6D-4581-B483-FC96444850F6}.Release|x86.Build.0 = Release|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Debug|x64.Build.0 = Debug|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Debug|x86.Build.0 = Debug|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Release|x64.ActiveCfg = Release|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Release|x64.Build.0 = Release|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Release|x86.ActiveCfg = Release|Any CPU
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{09F0AFC1-DF6D-4581-B483-FC96444850F6} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{F7998191-2C2B-4B1E-AF74-0D16A1E51B53} = {07AEF9EF-11E0-4FF5-9827-11D85EA7E8F9}
 	EndGlobalSection
 EndGlobal

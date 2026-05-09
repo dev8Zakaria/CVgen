@@ -1,9 +1,13 @@
 import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/modules/auth/AuthProvider";
 import { ROUTES } from "@/shared/constants/routes";
 
 export function HeroSection() {
+  const { authEnabled, authenticated, initialized, login, register } = useAuth();
+  const primaryRoute = !authEnabled || authenticated ? ROUTES.profile : ROUTES.landing;
+
   return (
     <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_#dbeafe,_transparent_35%),linear-gradient(135deg,_#f8fafc,_#eef2ff)] px-6 py-24">
       <div className="container grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
@@ -19,16 +23,39 @@ export function HeroSection() {
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg" className="rounded-full shadow-lg shadow-slate-900/10 transition hover:-translate-y-0.5">
-              <Link to={ROUTES.profile}>Start your profile</Link>
+              <Link to={primaryRoute}>Start your profile</Link>
             </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="rounded-full bg-background/80 backdrop-blur transition hover:-translate-y-0.5"
-            >
-              <Link to={ROUTES.opportunities}>Add an opportunity</Link>
-            </Button>
+            {authEnabled && initialized && !authenticated ? (
+              <>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full bg-background/80 backdrop-blur transition hover:-translate-y-0.5"
+                  onClick={() => register({ redirectUri: `${window.location.origin}${ROUTES.profile}` })}
+                >
+                  Sign up with Keycloak
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="ghost"
+                  className="rounded-full transition hover:-translate-y-0.5"
+                  onClick={() => login({ redirectUri: `${window.location.origin}${ROUTES.profile}` })}
+                >
+                  Log in
+                </Button>
+              </>
+            ) : (
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="rounded-full bg-background/80 backdrop-blur transition hover:-translate-y-0.5"
+              >
+                <Link to={ROUTES.opportunities}>Add an opportunity</Link>
+              </Button>
+            )}
           </div>
         </div>
         <div className="rounded-[2rem] border border-white/70 bg-white/70 p-6 shadow-2xl shadow-slate-900/10 backdrop-blur">

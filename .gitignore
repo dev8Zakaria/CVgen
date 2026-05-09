@@ -3,3 +3,7 @@ obj/
 node_modules/
 dist/
 .env
+backups/
+*.sql
+*.sql.gz
+.vscode

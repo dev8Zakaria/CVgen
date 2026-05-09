@@ -7,6 +7,7 @@ services:
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     environment:
+      VITE_AUTH_ENABLED: ${VITE_AUTH_ENABLED:-true}
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:5000/api}
       VITE_KEYCLOAK_URL: http://localhost:${KEYCLOAK_PORT:-8080}
       VITE_KEYCLOAK_REALM: ai-cv-generator
@@ -33,6 +34,19 @@ services:
     depends_on:
       - postgres
       - keycloak
+    networks:
+      - aicv-network
+  
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: aicv-ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=Development
+      - OPENAI_API_KEY=${OPENAI_API_KEY} # La clé est injectée ici !
     networks:
       - aicv-network
 
