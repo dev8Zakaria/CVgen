@@ -1,335 +1,250 @@
-import { useEffect, useState } from "react";
-
-import {
-  AlertCircle,
-  LoaderCircle,
-  Mail,
-  MapPin,
-  PencilLine,
-  Phone,
-  RefreshCw,
-  ShieldCheck,
-  Sparkles,
-  Trash2,
-  UserRound,
-} from "lucide-react";
+import { Save } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/modules/auth/AuthProvider";
-import { useProfile } from "@/modules/profile/hooks/useProfile";
-
-function InfoCard({ icon: Icon, label, value, subtle = false }) {
-  return (
-    <div className="rounded-3xl border bg-card p-5 shadow-sm shadow-slate-900/5">
-      <div className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-        <Icon className="h-4 w-4" />
-        <span>{label}</span>
-      </div>
-      <p className={`mt-4 text-base ${subtle ? "text-muted-foreground" : "font-medium text-foreground"}`}>{value}</p>
-    </div>
-  );
-}
+import { InlineTagEditor, SectionHeading, SkeletonBlock, StatCard } from "@/shared/components/app-ui";
+import { CollectionEditorCard } from "@/shared/components/profile-editor";
+import { usePrototypeApp } from "@/shared/providers/PrototypeAppProvider";
+import { useToast } from "@/shared/providers/ToastProvider";
 
 export function ProfilePage() {
-  const { user } = useAuth();
-  const { profile, loading, updating, deleting, error, reload, updateProfile, deleteProfile } = useProfile();
-  const [form, setForm] = useState({
-    title: "",
-    summary: "",
-    phone: "",
-    location: "",
-  });
-  const [feedback, setFeedback] = useState({ tone: null, message: "" });
-  const [profileDeleted, setProfileDeleted] = useState(false);
+  const { hydrated, profile, updateProfile, saveCollectionItem, removeCollectionItem, addSkill, removeSkill, usingBackendData } = usePrototypeApp();
+  const toast = useToast();
+  const [form, setForm] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const displayName =
-    profile?.fullName ||
-    user?.name ||
-    [user?.given_name, user?.family_name].filter(Boolean).join(" ") ||
-    user?.preferred_username ||
-    "Profile";
-
-  useEffect(() => {
-    if (!profile) {
-      return;
-    }
-
-    setForm({
-      title: profile.title ?? "",
-      summary: profile.summary ?? "",
-      phone: profile.phone ?? "",
-      location: profile.location ?? "",
-    });
-    setProfileDeleted(false);
-  }, [profile]);
-
-  const handleFieldChange = (event) => {
-    const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
-  };
-
-  const handleSave = async (event) => {
-    event.preventDefault();
-    setFeedback({ tone: null, message: "" });
-
-    try {
-      await updateProfile(form);
-      setFeedback({ tone: "success", message: "Profile changes saved successfully." });
-    } catch {
-      setFeedback({ tone: "error", message: "We could not save the profile changes. Please retry." });
-    }
-  };
-
-  const handleDelete = async () => {
-    const confirmed = window.confirm(
-      "Delete the local profile data for this account? You can recreate it later by loading the profile again while still authenticated.",
+  if (!hydrated) {
+    return (
+      <div className="grid gap-5">
+        <SkeletonBlock className="h-40" />
+        <SkeletonBlock className="h-72" />
+        <SkeletonBlock className="h-72" />
+      </div>
     );
+  }
 
-    if (!confirmed) {
-      return;
-    }
+  const safeForm = form ?? profile;
 
-    setFeedback({ tone: null, message: "" });
-
+  const saveProfile = async () => {
     try {
-      await deleteProfile();
-      setProfileDeleted(true);
-      setFeedback({
-        tone: "success",
-        message: "The local profile was deleted. If you reload, the backend can recreate it from your Keycloak account.",
+      setSaving(true);
+      await updateProfile({
+        phone: safeForm.phone,
+        address: safeForm.address,
+        professionalTitle: safeForm.professionalTitle,
+        summary: safeForm.summary,
       });
+      toast.success("Profile updated", "Your real backend profile has been updated.");
     } catch {
-      setFeedback({ tone: "error", message: "We could not delete the profile. Please retry." });
+      toast.error("Profile update failed", "We could not save the profile changes to the backend.");
+    } finally {
+      setSaving(false);
     }
   };
-
-  const handleRecreate = async () => {
-    setFeedback({ tone: null, message: "" });
-    await reload();
-  };
-
-  if (loading) {
-    return (
-      <section className="rounded-[2rem] border bg-card p-10 text-center shadow-sm shadow-slate-900/5">
-        <LoaderCircle className="mx-auto h-10 w-10 animate-spin text-primary" />
-        <h1 className="mt-5 font-display text-3xl font-bold">Loading your profile</h1>
-        <p className="mt-3 text-muted-foreground">We are fetching your backend profile and syncing it with your Keycloak identity.</p>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="rounded-[2rem] border border-destructive/20 bg-destructive/5 p-10 shadow-sm shadow-slate-900/5">
-        <div className="flex items-start gap-4">
-          <AlertCircle className="mt-1 h-6 w-6 text-destructive" />
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-destructive">Profile</p>
-              <h1 className="mt-2 font-display text-3xl font-bold">We could not load the profile API</h1>
-            </div>
-            <p className="max-w-2xl text-muted-foreground">
-              The frontend is connected to the profile endpoint, but this request failed. Check the backend container or token state, then retry.
-            </p>
-            <Button type="button" className="rounded-full" onClick={reload}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Retry request
-            </Button>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (profileDeleted && !profile) {
-    return (
-      <section className="space-y-8">
-        <div className="rounded-[2rem] border bg-card p-8 shadow-sm shadow-slate-900/5">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">Profile</p>
-          <h1 className="mt-4 font-display text-4xl font-bold tracking-tight">Local profile deleted</h1>
-          <p className="mt-4 max-w-2xl text-muted-foreground">
-            The backend removed your local profile record. Because you are still authenticated with Keycloak, you can recreate it at any time by fetching the profile again.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button type="button" className="rounded-full" onClick={handleRecreate}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Recreate profile from API
-            </Button>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   return (
-    <section className="space-y-8">
-      <div className="rounded-[2rem] border bg-[radial-gradient(circle_at_top_right,_rgba(191,219,254,0.65),_transparent_35%),linear-gradient(135deg,_rgba(255,255,255,0.96),_rgba(248,250,252,0.9))] p-8 shadow-sm shadow-slate-900/5">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-4">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">Authenticated profile</p>
-            <h1 className="font-display text-4xl font-bold tracking-tight">{displayName}</h1>
-            <p className="max-w-2xl text-muted-foreground">
-              This page is connected to `GET /api/profile/me`. Your first successful request auto-created the backend profile tied to your Keycloak account.
-            </p>
+    <div className="space-y-6">
+      <SectionHeading
+        eyebrow="My Profile"
+        title="Build the master profile your AI generator will refine."
+        description="This is the heart of the product. The richer and cleaner your profile is, the stronger every generated CV becomes."
+        action={
+          <Button type="button" onClick={saveProfile}>
+            <Save className="mr-2 h-4 w-4" />
+            {saving ? "Saving..." : "Save profile"}
+          </Button>
+        }
+      />
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <StatCard label="Experience Entries" value={profile.experience.length} meta="Your most relevant roles should be tight, evidence-based, and recent." />
+        <StatCard label="Core Skills" value={profile.skills.length} meta="Skills become matched and missing signals inside job analysis." />
+        <StatCard label="Projects & Proof" value={profile.projects.length} meta="Projects strengthen credibility and expand the narrative beyond titles." />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="paper-panel p-6">
+          <SectionHeading
+            eyebrow="Profile Core"
+            title="Personal and professional essentials"
+            description="These fields appear across the CV preview and are reused as AI input."
+            className="md:items-start"
+          />
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-foreground">Full name</span>
+              <input className="field opacity-70" value={safeForm.fullName} readOnly />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-foreground">Email</span>
+              <input className="field opacity-70" value={safeForm.email} readOnly />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-foreground">Phone</span>
+              <input className="field" value={safeForm.phone} onChange={(event) => setForm((current) => ({ ...(current ?? profile), phone: event.target.value }))} />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-foreground">Address</span>
+              <input className="field" value={safeForm.address} onChange={(event) => setForm((current) => ({ ...(current ?? profile), address: event.target.value }))} />
+            </label>
+            <label className="space-y-2 md:col-span-2">
+              <span className="text-sm font-semibold text-foreground">Professional title</span>
+              <input
+                className="field"
+                value={safeForm.professionalTitle}
+                onChange={(event) => setForm((current) => ({ ...(current ?? profile), professionalTitle: event.target.value }))}
+              />
+            </label>
+            <label className="space-y-2 md:col-span-2">
+              <span className="text-sm font-semibold text-foreground">Summary</span>
+              <textarea
+                className="field min-h-[180px]"
+                value={safeForm.summary}
+                onChange={(event) => setForm((current) => ({ ...(current ?? profile), summary: event.target.value }))}
+              />
+            </label>
           </div>
-          <div className="rounded-3xl border bg-white/80 px-5 py-4 shadow-sm backdrop-blur">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Current role</p>
-            <p className="mt-2 text-lg font-semibold text-foreground">{profile?.role ?? "User"}</p>
+          {usingBackendData ? (
+            <p className="mt-4 text-xs leading-6 text-muted-foreground">
+              Full name and email are sourced from your authenticated identity/backend profile. Title, summary, phone, and address are saved to the backend.
+            </p>
+          ) : null}
+        </div>
+
+        <div className="paper-panel p-6">
+          <SectionHeading
+            eyebrow="Skills"
+            title="Tag your strongest capabilities"
+            description="Add or remove skill tags inline. These are reused in job matching and the CV preview."
+            className="md:items-start"
+          />
+          <div className="mt-6">
+            <InlineTagEditor
+              items={profile.skills}
+              onAdd={(skill) => {
+                addSkill(skill);
+                toast.success("Skill added", `"${skill}" is now part of your profile skill set.`);
+              }}
+              onRemove={(skill) => {
+                removeSkill(skill);
+                toast.success("Skill removed", `"${skill}" was removed from the profile.`);
+              }}
+              placeholder="Add skill, e.g. Prompt Design"
+            />
           </div>
         </div>
       </div>
 
-      {feedback.message ? (
-        <div
-          className={`rounded-3xl border px-5 py-4 text-sm shadow-sm shadow-slate-900/5 ${
-            feedback.tone === "error"
-              ? "border-destructive/20 bg-destructive/5 text-destructive"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
-          }`}
-        >
-          {feedback.message}
-        </div>
-      ) : null}
+      <CollectionEditorCard
+        title="Education"
+        description="Degrees, programs, and formal learning that strengthen the narrative."
+        items={profile.education}
+        onSave={(item) => {
+          saveCollectionItem("education", item);
+          toast.success("Education updated", "Your education section has been refreshed.");
+        }}
+        onDelete={(id) => {
+          removeCollectionItem("education", id);
+          toast.success("Education removed");
+        }}
+        emptyCopy="No education entries yet."
+        fields={[
+          { name: "school", label: "School" },
+          { name: "degree", label: "Degree" },
+          { name: "period", label: "Period" },
+          { name: "location", label: "Location" },
+        ]}
+      />
 
-      <div className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
-        <div className="space-y-5">
-          <div className="grid gap-5 md:grid-cols-2">
-            <InfoCard icon={Mail} label="Email" value={profile?.email ?? "No email returned"} />
-            <InfoCard icon={UserRound} label="Username" value={user?.preferred_username ?? "No username returned"} />
-            <InfoCard icon={Phone} label="Phone" value={profile?.phone || "Not filled yet"} subtle={!profile?.phone} />
-            <InfoCard icon={MapPin} label="Location" value={profile?.location || "Not filled yet"} subtle={!profile?.location} />
-          </div>
+      <CollectionEditorCard
+        title="Work Experience"
+        description="Keep each role sharp, concrete, and outcome-driven."
+        items={profile.experience.map((entry) => ({ ...entry, bullets: entry.bullets.join(" • ") }))}
+        onSave={(item) => {
+          saveCollectionItem("experience", {
+            ...item,
+            bullets: String(item.bullets || "")
+              .split("•")
+              .map((bullet) => bullet.trim())
+              .filter(Boolean),
+          });
+          toast.success("Experience updated");
+        }}
+        onDelete={(id) => {
+          removeCollectionItem("experience", id);
+          toast.success("Experience removed");
+        }}
+        emptyCopy="No work experience entries yet."
+        fields={[
+          { name: "company", label: "Company" },
+          { name: "role", label: "Role" },
+          { name: "period", label: "Period" },
+          { name: "location", label: "Location" },
+          { name: "bullets", label: "Bullet points", multiline: true, rows: 5 },
+        ]}
+      />
 
-          <div className="rounded-[2rem] border bg-card p-6 shadow-sm shadow-slate-900/5">
-            <div className="flex items-center gap-3">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h2 className="font-display text-2xl font-bold">Profile summary</h2>
-            </div>
-            <p className={`mt-4 leading-7 ${profile?.summary ? "text-foreground" : "text-muted-foreground"}`}>
-              {profile?.summary || "The backend created this profile successfully, but the summary is still empty."}
-            </p>
-          </div>
+      <CollectionEditorCard
+        title="Projects"
+        description="Add proof-of-work that gives recruiters and the AI engine more depth."
+        items={profile.projects}
+        onSave={(item) => {
+          saveCollectionItem("projects", item);
+          toast.success("Project updated");
+        }}
+        onDelete={(id) => {
+          removeCollectionItem("projects", id);
+          toast.success("Project removed");
+        }}
+        emptyCopy="No projects yet."
+        fields={[
+          { name: "name", label: "Project name" },
+          { name: "role", label: "Role" },
+          { name: "description", label: "Description", multiline: true, rows: 4 },
+        ]}
+      />
 
-          <form onSubmit={handleSave} className="rounded-[2rem] border bg-card p-6 shadow-sm shadow-slate-900/5">
-            <div className="flex items-center gap-3">
-              <PencilLine className="h-5 w-5 text-primary" />
-              <h2 className="font-display text-2xl font-bold">Edit profile details</h2>
-            </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              This form is connected to `PUT /api/profile/me`, so you can now persist profile edits from the frontend.
-            </p>
+      <div className="grid gap-5 xl:grid-cols-2">
+        <CollectionEditorCard
+          title="Languages"
+          description="Show linguistic flexibility for international roles."
+          items={profile.languages}
+          onSave={(item) => {
+            saveCollectionItem("languages", item);
+            toast.success("Language updated");
+          }}
+          onDelete={(id) => {
+            removeCollectionItem("languages", id);
+            toast.success("Language removed");
+          }}
+          emptyCopy="No language entries yet."
+          fields={[
+            { name: "name", label: "Language" },
+            { name: "level", label: "Level" },
+          ]}
+        />
 
-            <div className="mt-6 grid gap-5">
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-foreground">Title</span>
-                <input
-                  name="title"
-                  value={form.title}
-                  onChange={handleFieldChange}
-                  placeholder="Junior Full-Stack Developer"
-                  className="w-full rounded-2xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
-                />
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-foreground">Summary</span>
-                <textarea
-                  name="summary"
-                  value={form.summary}
-                  onChange={handleFieldChange}
-                  rows={6}
-                  placeholder="Write the short introduction that should represent you across CV generations."
-                  className="w-full rounded-2xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
-                />
-              </label>
-
-              <div className="grid gap-5 md:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="text-sm font-semibold text-foreground">Phone</span>
-                  <input
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleFieldChange}
-                    placeholder="+212 ..."
-                    className="w-full rounded-2xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-sm font-semibold text-foreground">Location</span>
-                  <input
-                    name="location"
-                    value={form.location}
-                    onChange={handleFieldChange}
-                    placeholder="Casablanca, Morocco"
-                    className="w-full rounded-2xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button type="submit" className="rounded-full" disabled={updating || deleting}>
-                {updating ? (
-                  <>
-                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save changes"
-                )}
-              </Button>
-              <Button type="button" variant="outline" className="rounded-full" onClick={reload} disabled={updating || deleting}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Reset from API
-              </Button>
-            </div>
-          </form>
-        </div>
-
-        <div className="space-y-5">
-          <InfoCard icon={ShieldCheck} label="Keycloak subject" value={user?.sub ?? "Missing token subject"} subtle={!user?.sub} />
-          <InfoCard icon={UserRound} label="Profile title" value={profile?.title || "Not filled yet"} subtle={!profile?.title} />
-          <div className="rounded-[2rem] border bg-card p-6 shadow-sm shadow-slate-900/5">
-            <h2 className="font-display text-2xl font-bold">What is wired now</h2>
-            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-              <li>React is connected to Keycloak for login, sign up, and logout.</li>
-              <li>Protected routes now sit behind the authenticated dashboard.</li>
-              <li>The profile page can fetch, update, and delete the local profile.</li>
-            </ul>
-            <Button type="button" variant="outline" className="mt-6 w-full rounded-full" onClick={reload}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh profile data
-            </Button>
-          </div>
-
-          <div className="rounded-[2rem] border border-destructive/20 bg-destructive/5 p-6 shadow-sm shadow-slate-900/5">
-            <div className="flex items-center gap-3">
-              <Trash2 className="h-5 w-5 text-destructive" />
-              <h2 className="font-display text-2xl font-bold text-foreground">Danger zone</h2>
-            </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              This triggers `DELETE /api/profile/me`. In the current backend flow, deleting the local profile does not delete your Keycloak account.
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-6 w-full rounded-full border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={handleDelete}
-              disabled={updating || deleting}
-            >
-              {deleting ? (
-                <>
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete local profile"
-              )}
-            </Button>
-          </div>
-        </div>
+        <CollectionEditorCard
+          title="Certifications"
+          description="Capture signals of depth, rigor, and current practice."
+          items={profile.certifications}
+          onSave={(item) => {
+            saveCollectionItem("certifications", item);
+            toast.success("Certification updated");
+          }}
+          onDelete={(id) => {
+            removeCollectionItem("certifications", id);
+            toast.success("Certification removed");
+          }}
+          emptyCopy="No certifications yet."
+          fields={[
+            { name: "title", label: "Certification" },
+            { name: "issuer", label: "Issuer" },
+            { name: "year", label: "Year" },
+          ]}
+        />
       </div>
-    </section>
+    </div>
   );
 }

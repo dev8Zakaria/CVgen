@@ -1,62 +1,54 @@
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/modules/auth/AuthProvider";
+import { AppLogo, ThemeToggle } from "@/shared/components/app-ui";
 import { ROUTES } from "@/shared/constants/routes";
+import { useTheme } from "@/shared/providers/ThemeProvider";
 
 export function MainLayout() {
   const location = useLocation();
-  const { authEnabled, authenticated, initialized, login, register, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const { authEnabled, authenticated, initialized, login, logout } = useAuth();
 
   const redirectUri = `${window.location.origin}${location.pathname}`;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b border-white/60 bg-background/80 backdrop-blur">
-        <div className="container flex h-16 items-center justify-between px-6">
-          <Link to={ROUTES.landing} className="font-display text-lg font-bold tracking-tight text-foreground">
-            AI CV Generator
-          </Link>
-          <div className="flex items-center gap-3">
-            {authEnabled && initialized ? (
-              authenticated ? (
+    <div className="min-h-screen px-4 py-4 md:px-6">
+      <div className="app-shell min-h-[calc(100vh-2rem)]">
+        <header className="border-b border-border/70 px-6 py-5 md:px-10">
+          <div className="mx-auto flex max-w-[1360px] items-center justify-between gap-4">
+            <AppLogo />
+            <div className="flex items-center gap-3">
+              <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+              {initialized && authenticated ? (
                 <>
-                  <Button asChild variant="outline" className="rounded-full">
-                    <a href={ROUTES.profile}>Dashboard</a>
+                  <Button asChild variant="outline">
+                    <Link to={ROUTES.dashboard}>Enter App</Link>
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="rounded-full"
-                    onClick={() => logout({ redirectUri: window.location.origin })}
-                  >
-                    Log out
+                  <Button type="button" variant="ghost" onClick={() => logout?.({ redirectUri: window.location.origin })}>
+                    Logout
                   </Button>
                 </>
+              ) : authEnabled ? (
+                <Button type="button" onClick={() => login?.({ redirectUri })}>
+                  Login
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               ) : (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-full"
-                    onClick={() => register({ redirectUri: `${window.location.origin}${ROUTES.profile}` })}
-                  >
-                    Sign up
-                  </Button>
-                  <Button
-                    type="button"
-                    className="rounded-full"
-                    onClick={() => login({ redirectUri })}
-                  >
-                    Log in
-                  </Button>
-                </>
-              )
-            ) : null}
+                <Button asChild>
+                  <Link to={ROUTES.dashboard}>
+                    Open Prototype
+                    <Sparkles className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-      </header>
-      <Outlet />
+        </header>
+        <Outlet />
+      </div>
     </div>
   );
 }
