@@ -24,9 +24,10 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
-      KC_HOSTNAME: 192.168.0.220
+      KC_HOSTNAME: 192.168.0.210
       KC_HOSTNAME_STRICT: "false"
       KC_PROXY: "edge"
+      KC_PROXY_HEADERS: xforwarded
     volumes:
       - keycloak_data:/opt/keycloak/data
       - ./infra/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
