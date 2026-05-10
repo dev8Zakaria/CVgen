@@ -18,7 +18,7 @@ public class OpportunityService
         _aiService = aiService;
     }
 
-    public async Task<OpportunityResponseDto?> CreateAsync(string keycloakId, CreateOpportunityDto dto)
+    public async Task<OpportunityDetailsResponseDto?> CreateAsync(string keycloakId, CreateOpportunityDto dto)
     {
         var userId = await ResolveUserIdAsync(keycloakId);
         if (userId is null)
@@ -42,7 +42,7 @@ public class OpportunityService
         return MapToResponseDto(jobOffer);
     }
 
-    public async Task<List<OpportunityListItemDto>?> GetAllByUserAsync(string keycloakId)
+    public async Task<List<OpportunityListResponseDto>?> GetAllByUserAsync(string keycloakId)
     {
         var userId = await ResolveUserIdAsync(keycloakId);
         if (userId is null)
@@ -52,7 +52,7 @@ public class OpportunityService
 
         var jobOffers = await _repository.GetAllByUserIdAsync(userId.Value);
 
-        return jobOffers.Select(jobOffer => new OpportunityListItemDto
+        return jobOffers.Select(jobOffer => new OpportunityListResponseDto
         {
             Id = jobOffer.Id,
             Title = jobOffer.Title,
@@ -63,7 +63,7 @@ public class OpportunityService
         }).ToList();
     }
 
-    public async Task<OpportunityResponseDto?> GetByIdAsync(Guid id, string keycloakId)
+    public async Task<OpportunityDetailsResponseDto?> GetByIdAsync(Guid id, string keycloakId)
     {
         var userId = await ResolveUserIdAsync(keycloakId);
         if (userId is null)
@@ -75,7 +75,7 @@ public class OpportunityService
         return jobOffer is null ? null : MapToResponseDto(jobOffer);
     }
 
-    public async Task<OpportunityResponseDto?> UpdateAsync(Guid id, string keycloakId, UpdateOpportunityDto dto)
+    public async Task<OpportunityDetailsResponseDto?> UpdateAsync(Guid id, string keycloakId, UpdateOpportunityDto dto)
     {
         var userId = await ResolveUserIdAsync(keycloakId);
         if (userId is null)
@@ -124,7 +124,7 @@ public class OpportunityService
         return true;
     }
 
-    public async Task<OpportunityResponseDto?> AnalyzeAsync(Guid id, string keycloakId, CancellationToken cancellationToken = default)
+    public async Task<OpportunityDetailsResponseDto?> AnalyzeAsync(Guid id, string keycloakId, CancellationToken cancellationToken = default)
     {
         var userId = await ResolveUserIdAsync(keycloakId);
         if (userId is null)
@@ -168,7 +168,7 @@ public class OpportunityService
         return _repository.GetUserIdByKeycloakIdAsync(keycloakId);
     }
 
-    private async Task UpsertAnalysisAsync(JobOffer jobOffer, AnalyzeJobResponseDto aiResponse)
+    private async Task UpsertAnalysisAsync(JobOffer jobOffer, AiJobAnalysisResponseDto aiResponse)
     {
         var analysis = jobOffer.Analysis;
         if (analysis is null)
@@ -194,7 +194,7 @@ public class OpportunityService
         analysis.CreatedAt = DateTime.UtcNow;
     }
 
-    private static OpportunityResponseDto MapToResponseDto(JobOffer jobOffer) => new()
+    private static OpportunityDetailsResponseDto MapToResponseDto(JobOffer jobOffer) => new()
     {
         Id = jobOffer.Id,
         UserId = jobOffer.UserId,
@@ -206,7 +206,7 @@ public class OpportunityService
         UpdatedAt = jobOffer.UpdatedAt,
         Analysis = jobOffer.Analysis is null
             ? null
-            : new OpportunityAnalysisResponseDto
+            : new OpportunityAnalysisDto
             {
                 Id = jobOffer.Analysis.Id,
                 JobOfferId = jobOffer.Analysis.JobOfferId,

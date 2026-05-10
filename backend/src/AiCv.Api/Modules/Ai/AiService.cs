@@ -12,9 +12,9 @@ public sealed class AiService : IAiService
         _httpClient = httpClient;
     }
 
-    public async Task<AnalyzeJobResponseDto> AnalyzeJobAsync(string jobDescription, CancellationToken cancellationToken = default)
+    public async Task<AiJobAnalysisResponseDto> AnalyzeJobAsync(string jobDescription, CancellationToken cancellationToken = default)
     {
-        var request = new AnalyzeJobRequestDto
+        var request = new AiJobAnalysisRequestDto
         {
             JobDescription = jobDescription.Trim(),
         };
@@ -25,7 +25,7 @@ public sealed class AiService : IAiService
             throw new AiAnalysisFailedException($"AI service returned status code {(int)response.StatusCode}.");
         }
 
-        var payload = await response.Content.ReadFromJsonAsync<AnalyzeJobResponseDto>(cancellationToken: cancellationToken);
+        var payload = await response.Content.ReadFromJsonAsync<AiJobAnalysisResponseDto>(cancellationToken: cancellationToken);
         if (payload is null)
         {
             throw new AiAnalysisFailedException("AI service returned an empty response.");

@@ -39,7 +39,7 @@ public sealed class CvEndpointsTests : IClassFixture<CustomWebApplicationFactory
             description = "We are looking for a backend developer with experience in C#, Docker, APIs, and microservices.",
         });
 
-        var createdOpportunity = await createResponse.Content.ReadFromJsonAsync<AiCv.Api.Modules.Opportunities.DTOs.OpportunityResponseDto>();
+        var createdOpportunity = await createResponse.Content.ReadFromJsonAsync<AiCv.Api.Modules.Opportunities.DTOs.OpportunityDetailsResponseDto>();
         await client.PostAsync($"/api/opportunity/{createdOpportunity!.Id}/analyze", null);
 
         var response = await client.PostAsJsonAsync("/api/cvs/generate", new
@@ -88,7 +88,7 @@ public sealed class CvEndpointsTests : IClassFixture<CustomWebApplicationFactory
             description = "We are looking for a backend developer with experience in C#, Docker, APIs, and microservices.",
         });
 
-        var createdOpportunity = await createResponse.Content.ReadFromJsonAsync<AiCv.Api.Modules.Opportunities.DTOs.OpportunityResponseDto>();
+        var createdOpportunity = await createResponse.Content.ReadFromJsonAsync<AiCv.Api.Modules.Opportunities.DTOs.OpportunityDetailsResponseDto>();
 
         var response = await client.PostAsJsonAsync("/api/cvs/generate", new
         {

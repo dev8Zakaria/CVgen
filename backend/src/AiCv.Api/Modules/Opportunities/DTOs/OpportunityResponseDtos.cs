@@ -1,6 +1,6 @@
 namespace AiCv.Api.Modules.Opportunities.DTOs;
 
-public class OpportunityListItemDto
+public class OpportunityListResponseDto
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
@@ -10,7 +10,7 @@ public class OpportunityListItemDto
     public DateTime UpdatedAt { get; set; }
 }
 
-public class OpportunityAnalysisResponseDto
+public class OpportunityAnalysisDto
 {
     public Guid Id { get; set; }
     public Guid JobOfferId { get; set; }
@@ -26,7 +26,7 @@ public class OpportunityAnalysisResponseDto
     public DateTime CreatedAt { get; set; }
 }
 
-public class OpportunityResponseDto
+public class OpportunityDetailsResponseDto
 {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
@@ -36,5 +36,5 @@ public class OpportunityResponseDto
     public string AnalysisStatus { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
-    public OpportunityAnalysisResponseDto? Analysis { get; set; }
+    public OpportunityAnalysisDto? Analysis { get; set; }
 }

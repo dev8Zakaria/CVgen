@@ -2,13 +2,13 @@ using System.Text.Json.Serialization;
 
 namespace AiCv.Api.Modules.Ai.DTOs;
 
-public sealed class AnalyzeJobRequestDto
+public sealed class AiJobAnalysisRequestDto
 {
     [JsonPropertyName("job_description")]
     public string JobDescription { get; set; } = string.Empty;
 }
 
-public sealed class AnalyzeJobResponseDto
+public sealed class AiJobAnalysisResponseDto
 {
     [JsonPropertyName("extracted_keywords")]
     public List<string> ExtractedKeywords { get; set; } = [];

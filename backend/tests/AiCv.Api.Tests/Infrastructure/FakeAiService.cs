@@ -5,7 +5,7 @@ namespace AiCv.Api.Tests.Infrastructure;
 
 public sealed class FakeAiService : IAiService
 {
-    public AnalyzeJobResponseDto Response { get; set; } = new()
+    public AiJobAnalysisResponseDto Response { get; set; } = new()
     {
         ExtractedKeywords = ["FastAPI", "Docker"],
         SuggestedSkills = ["C#", "Python"],
@@ -14,7 +14,7 @@ public sealed class FakeAiService : IAiService
 
     public Exception? ExceptionToThrow { get; set; }
 
-    public Task<AnalyzeJobResponseDto> AnalyzeJobAsync(string jobDescription, CancellationToken cancellationToken = default)
+    public Task<AiJobAnalysisResponseDto> AnalyzeJobAsync(string jobDescription, CancellationToken cancellationToken = default)
     {
         if (ExceptionToThrow is not null)
         {
@@ -27,7 +27,7 @@ public sealed class FakeAiService : IAiService
     public void Reset()
     {
         ExceptionToThrow = null;
-        Response = new AnalyzeJobResponseDto
+        Response = new AiJobAnalysisResponseDto
         {
             ExtractedKeywords = ["FastAPI", "Docker"],
             SuggestedSkills = ["C#", "Python"],

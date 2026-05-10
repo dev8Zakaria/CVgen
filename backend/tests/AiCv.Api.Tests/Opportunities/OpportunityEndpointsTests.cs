@@ -27,7 +27,7 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
         await client.GetAsync("/api/profile/me");
     }
 
-    private async Task<OpportunityResponseDto> CreateOpportunityAsync(HttpClient client)
+    private async Task<OpportunityDetailsResponseDto> CreateOpportunityAsync(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/opportunity", new
         {
@@ -36,7 +36,7 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
             description = "Build product experiences around AI.",
         });
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var created = await response.Content.ReadFromJsonAsync<OpportunityResponseDto>();
+        var created = await response.Content.ReadFromJsonAsync<OpportunityDetailsResponseDto>();
         created.Should().NotBeNull();
         return created!;
     }
@@ -60,7 +60,7 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
 
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var created = await createResponse.Content.ReadFromJsonAsync<OpportunityResponseDto>();
+        var created = await createResponse.Content.ReadFromJsonAsync<OpportunityDetailsResponseDto>();
         created.Should().NotBeNull();
         created!.Title.Should().Be("Frontend Engineer");
         created.CompanyName.Should().Be("OpenAI");
@@ -113,7 +113,7 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
         var response = await client.GetAsync("/api/opportunity");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var list = await response.Content.ReadFromJsonAsync<List<OpportunityListItemDto>>();
+        var list = await response.Content.ReadFromJsonAsync<List<OpportunityListResponseDto>>();
         list.Should().NotBeNull().And.BeEmpty();
     }
 
@@ -129,7 +129,7 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
         var response = await client.GetAsync("/api/opportunity");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var list = await response.Content.ReadFromJsonAsync<List<OpportunityListItemDto>>();
+        var list = await response.Content.ReadFromJsonAsync<List<OpportunityListResponseDto>>();
         list.Should().NotBeNull().And.HaveCount(1);
 
         var item = list![0];
@@ -164,7 +164,7 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
         // B liste ses opportunités → doit être vide
         var response = await clientB.GetAsync("/api/opportunity");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var list = await response.Content.ReadFromJsonAsync<List<OpportunityListItemDto>>();
+        var list = await response.Content.ReadFromJsonAsync<List<OpportunityListResponseDto>>();
         list.Should().NotBeNull().And.BeEmpty();
     }
 
@@ -182,7 +182,7 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
         var response = await client.GetAsync($"/api/opportunity/{created.Id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var detail = await response.Content.ReadFromJsonAsync<OpportunityResponseDto>();
+        var detail = await response.Content.ReadFromJsonAsync<OpportunityDetailsResponseDto>();
         detail.Should().NotBeNull();
         detail!.Id.Should().Be(created.Id);
         detail.Title.Should().Be("Frontend Engineer");
@@ -263,7 +263,7 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
 
         updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var updated = await updateResponse.Content.ReadFromJsonAsync<OpportunityResponseDto>();
+        var updated = await updateResponse.Content.ReadFromJsonAsync<OpportunityDetailsResponseDto>();
         updated.Should().NotBeNull();
         updated!.Title.Should().Be("Senior Backend Engineer");
         updated.CompanyName.Should().Be("Updated Corp");
@@ -438,7 +438,7 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
         var response = await client.PostAsync($"/api/opportunity/{created.Id}/analyze", null);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var analyzed = await response.Content.ReadFromJsonAsync<OpportunityResponseDto>();
+        var analyzed = await response.Content.ReadFromJsonAsync<OpportunityDetailsResponseDto>();
         analyzed.Should().NotBeNull();
         analyzed!.AnalysisStatus.Should().Be("completed");
         analyzed.Analysis.Should().NotBeNull();
