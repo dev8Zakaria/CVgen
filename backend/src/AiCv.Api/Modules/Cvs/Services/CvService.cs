@@ -1,119 +1,73 @@
 using AiCv.Api.Modules.Cvs.DTOs;
+using AiCv.Api.Modules.Cvs.Entities;
 using AiCv.Api.Modules.Cvs.Repositories;
-using AiCv.Api.Modules.Opportunities.Entities;
-using AiCv.Api.Modules.Profiles.Entities;
+using AiCv.Api.Modules.Profiles.Repositories;
+using AiCv.Api.Shared.Storage;
 
 namespace AiCv.Api.Modules.Cvs.Services;
 
-public sealed class CvService
+public class CvService
 {
-    private readonly CvRepository _repository;
+    private readonly CvRepository _cvRepository;
+    private readonly ProfileRepository _profileRepository;
+    private readonly MinioStorageService _storageService;
 
-    public CvService(CvRepository repository)
+    public CvService(CvRepository cvRepository, ProfileRepository profileRepository, MinioStorageService storageService)
     {
-        _repository = repository;
+        _cvRepository = cvRepository;
+        _profileRepository = profileRepository;
+        _storageService = storageService;
     }
 
-    public async Task<GeneratedCvResponseDto?> GenerateAsync(Guid opportunityId, string keycloakId)
+    public async Task<GeneratedCvResponseDto?> GenerateInitialCvAsync(string keycloakId, GenerateCvRequestDto request)
     {
-        var user = await _repository.GetUserWithProfileByKeycloakIdAsync(keycloakId);
-        if (user?.Profile is null)
+        // 1. Récupérer l'utilisateur et son profil
+        var user = await _profileRepository.GetUserWithProfileByKeycloakIdAsync(keycloakId);
+        if (user == null) return null;
+
+        string? assetUrl = null;
+
+        // 2. Si un fichier est fourni, l'uploader sur MinIO
+        if (request.AssetFile != null && request.AssetFile.Length > 0)
         {
-            return null;
+            using var stream = request.AssetFile.OpenReadStream();
+            assetUrl = await _storageService.UploadFileAsync(stream, request.AssetFile.FileName, request.AssetFile.ContentType);
         }
 
-        var opportunity = await _repository.GetAnalyzedOpportunityByIdAndUserIdAsync(opportunityId, user.Id);
-        if (opportunity?.Analysis is null || !string.Equals(opportunity.AnalysisStatus, "completed", StringComparison.OrdinalIgnoreCase))
+        // 3. Créer l'entité en base de données
+        var cv = new Cv
         {
-            return null;
-        }
-
-        return BuildResponse(user, user.Profile, opportunity, opportunity.Analysis);
-    }
-
-    private static GeneratedCvResponseDto BuildResponse(
-        User user,
-        Profile profile,
-        JobOffer opportunity,
-        JobOfferAnalysis analysis)
-    {
-        var highlightedSkills = analysis.ExtractedSkills
-            .Concat(analysis.DetectedTechnologies)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(8)
-            .ToList();
-
-        var keywords = analysis.ExtractedKeywords
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(8)
-            .ToList();
-
-        var summaryParts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(profile.Summary))
-        {
-            summaryParts.Add(profile.Summary.Trim());
-        }
-
-        summaryParts.Add(
-            $"Targeting the {opportunity.Title} role at {opportunity.CompanyName} with focus on {BuildFocusPhrase(highlightedSkills, keywords)}.");
-
-        if (analysis.MatchScorePhrase() is { Length: > 0 } matchScorePhrase)
-        {
-            summaryParts.Add(matchScorePhrase);
-        }
-
-        var experienceHints = new List<string>
-        {
-            $"Adapt your project bullets to emphasize {BuildFocusPhrase(highlightedSkills, keywords)}.",
-            $"Mirror the vocabulary from the job offer for {opportunity.Title} at {opportunity.CompanyName}.",
+            UserId = user.Id,
+            OpportunityId = request.OpportunityId,
+            AssetUrl = assetUrl
         };
 
-        if (keywords.Count > 0)
-        {
-            experienceHints.Add($"Ensure the CV references these keywords explicitly: {string.Join(", ", keywords)}.");
-        }
+        await _cvRepository.AddCvAsync(cv);
+        await _cvRepository.SaveChangesAsync();
 
+        // 4. Mapper et renvoyer la réponse "Without AI"
         return new GeneratedCvResponseDto
         {
+            CvId = cv.Id,
+            AssetUrl = cv.AssetUrl,
+            GeneratedAt = cv.CreatedAt,
+            ProfessionalSummary = "Génération initiale (En attente de l'IA)",
+            
             Profile = new GeneratedCvProfileDto
             {
                 FullName = user.FullName,
                 Email = user.Email,
-                Phone = profile.Phone,
-                Location = profile.Location,
-                Headline = string.IsNullOrWhiteSpace(profile.Title) ? opportunity.Title : profile.Title,
+                Phone = user.Profile?.Phone ?? string.Empty,
+                Location = user.Profile?.Location ?? string.Empty,
+                Headline = user.Profile?.Title ?? string.Empty
             },
+            
             Target = new GeneratedCvTargetDto
             {
-                OpportunityId = opportunity.Id,
-                JobTitle = opportunity.Title,
-                CompanyName = opportunity.CompanyName,
-            },
-            ProfessionalSummary = string.Join(" ", summaryParts),
-            HighlightedSkills = highlightedSkills,
-            MatchingKeywords = keywords,
-            TailoredExperienceHints = experienceHints,
-            GeneratedAt = DateTime.UtcNow,
+                OpportunityId = request.OpportunityId,
+                JobTitle = "Titre à extraire de l'offre", // Zakaria fera l'appel IA pour ça plus tard
+                CompanyName = "Entreprise cible"
+            }
         };
-    }
-
-    private static string BuildFocusPhrase(List<string> highlightedSkills, List<string> keywords)
-    {
-        var focusItems = highlightedSkills.Concat(keywords).Distinct(StringComparer.OrdinalIgnoreCase).Take(3).ToList();
-        return focusItems.Count > 0 ? string.Join(", ", focusItems) : "the role requirements";
-    }
-}
-
-internal static class CvAnalysisExtensions
-{
-    public static string MatchScorePhrase(this JobOfferAnalysis analysis)
-    {
-        const string prefix = "Estimated match score:";
-        if (string.IsNullOrWhiteSpace(analysis.AnalysisSummary) || !analysis.AnalysisSummary.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-        {
-            return string.Empty;
-        }
-
-        return analysis.AnalysisSummary.TrimEnd('.') + ".";
     }
 }

@@ -22,8 +22,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ==========================================
 builder.Services.AddScoped<AiCv.Api.Modules.Profiles.Repositories.ProfileRepository>();
 builder.Services.AddScoped<AiCv.Api.Modules.Profiles.Services.ProfileService>();
-builder.Services.AddScoped<CvRepository>();
-builder.Services.AddScoped<CvService>();
+builder.Services.AddScoped<AiCv.Api.Shared.Storage.MinioStorageService>();
+builder.Services.AddScoped<AiCv.Api.Modules.Cvs.Repositories.CvRepository>();
+builder.Services.AddScoped<AiCv.Api.Modules.Cvs.Services.CvService>();
 builder.Services.AddHttpClient<IAiService, AiService>(client =>
 {
     var baseUrl = builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000";

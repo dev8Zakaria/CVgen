@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace AiCv.Api.Modules.Cvs;
 
 [ApiController]
-[Route("api/cvs")]
+[Route("api/[controller]")]
 [Authorize]
-public sealed class CvController : ControllerBase
+public class CvController : ControllerBase
 {
     private readonly CvService _cvService;
 
@@ -19,20 +19,15 @@ public sealed class CvController : ControllerBase
     }
 
     [HttpPost("generate")]
-    public async Task<IActionResult> Generate([FromBody] GenerateCvRequestDto request)
+    public async Task<IActionResult> GenerateCv([FromForm] GenerateCvRequestDto request)
     {
         var keycloakId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrWhiteSpace(keycloakId))
-        {
-            return Unauthorized("Token invalide ou utilisateur introuvable.");
-        }
+        if (string.IsNullOrEmpty(keycloakId)) return Unauthorized();
 
-        var result = await _cvService.GenerateAsync(request.OpportunityId, keycloakId);
-        if (result is null)
-        {
-            return BadRequest("The authenticated profile or analyzed job offer could not be used to generate a CV.");
-        }
+        var response = await _cvService.GenerateInitialCvAsync(keycloakId, request);
+        
+        if (response == null) return BadRequest("Utilisateur introuvable. Veuillez créer un profil d'abord.");
 
-        return Ok(result);
+        return Ok(response);
     }
 }

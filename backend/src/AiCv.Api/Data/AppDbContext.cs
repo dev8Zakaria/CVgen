@@ -1,8 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using AiCv.Api.Modules.Profiles.Entities;
 using AiCv.Api.Modules.Opportunities.Entities;
+using AiCv.Api.Modules.Cvs.Entities;
 
 namespace AiCv.Api.Data;
 
@@ -12,6 +13,7 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<Profile> Profiles { get; set; }
+    public DbSet<Cv> Cvs { get; set; }
     public DbSet<JobOffer> JobOffers { get; set; }
     public DbSet<JobOfferAnalysis> JobOfferAnalyses { get; set; }
 

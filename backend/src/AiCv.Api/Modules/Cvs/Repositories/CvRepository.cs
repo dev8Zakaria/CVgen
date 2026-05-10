@@ -1,11 +1,9 @@
 using AiCv.Api.Data;
-using AiCv.Api.Modules.Opportunities.Entities;
-using AiCv.Api.Modules.Profiles.Entities;
-using Microsoft.EntityFrameworkCore;
+using AiCv.Api.Modules.Cvs.Entities;
 
 namespace AiCv.Api.Modules.Cvs.Repositories;
 
-public sealed class CvRepository
+public class CvRepository
 {
     private readonly AppDbContext _context;
 
@@ -14,17 +12,13 @@ public sealed class CvRepository
         _context = context;
     }
 
-    public Task<User?> GetUserWithProfileByKeycloakIdAsync(string keycloakId)
+    public async Task AddCvAsync(Cv cv)
     {
-        return _context.Users
-            .Include(user => user.Profile)
-            .FirstOrDefaultAsync(user => user.KeycloakId == keycloakId);
+        await _context.Cvs.AddAsync(cv);
     }
 
-    public Task<JobOffer?> GetAnalyzedOpportunityByIdAndUserIdAsync(Guid opportunityId, Guid userId)
+    public async Task SaveChangesAsync()
     {
-        return _context.JobOffers
-            .Include(jobOffer => jobOffer.Analysis)
-            .FirstOrDefaultAsync(jobOffer => jobOffer.Id == opportunityId && jobOffer.UserId == userId);
+        await _context.SaveChangesAsync();
     }
 }
