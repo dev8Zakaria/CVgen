@@ -7,3 +7,4 @@ backups/
 *.sql
 *.sql.gz
 .vscode
+certs/

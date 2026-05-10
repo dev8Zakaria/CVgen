@@ -4,20 +4,17 @@ import path from "node:path";
 
 export default defineConfig({
   plugins: [react()],
+
   server: {
-    host: "0.0.0.0",
+    host: true,
     port: 5173,
+    strictPort: true,
     allowedHosts: "all",
   },
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: "./src/test/setup.js",
-    css: true,
-  },
+
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(process.cwd(), "./src"),
     },
   },
 });
