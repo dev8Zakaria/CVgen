@@ -36,7 +36,7 @@ services:
       - keycloak
     networks:
       - aicv-network
-  
+
   ai-service:
     build:
       context: ./ai-service
@@ -46,7 +46,9 @@ services:
       - "8000:8000"
     environment:
       - ENVIRONMENT=Development
-      - OPENAI_API_KEY=${OPENAI_API_KEY} # La clé est injectée ici !
+      - AI_PROVIDER=${AI_PROVIDER:-gemini}
+      - AI_MODEL=${AI_MODEL:-gemini-3-flash-preview}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     networks:
       - aicv-network
 
