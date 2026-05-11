@@ -11,15 +11,9 @@ using AiCv.Api.Modules.Opportunities.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ==========================================
-// 1. CONFIGURATION DE LA BASE DE DONNÉES
-// ==========================================
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ==========================================
-// 2. INJECTION DES DÉPENDANCES (SERVICES)
-// ==========================================
 builder.Services.AddScoped<AiCv.Api.Modules.Profiles.Repositories.ProfileRepository>();
 builder.Services.AddScoped<AiCv.Api.Modules.Profiles.Services.ProfileService>();
 builder.Services.AddScoped<CvRepository>();
@@ -29,76 +23,56 @@ builder.Services.AddHttpClient<IAiService, AiService>(client =>
     var baseUrl = builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000";
     client.BaseAddress = new Uri(baseUrl);
 });
-// Opportunities
 builder.Services.AddScoped<OpportunityRepository>();
 builder.Services.AddScoped<OpportunityService>();
 
-// ==========================================
-// 3. CONFIGURATION DES CORS (POUR REACT)
-// ==========================================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        // On autorise l'URL du frontend définie dans le docker-compose
-        policy.WithOrigins("http://localhost:5173") 
+        policy.WithOrigins("http://localhost:5173", "https://192.168.0.210")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
-// ==========================================
-// 4. CONFIGURATION AUTHENTIFICATION (KEYCLOAK)
-// ==========================================
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.Authority = builder.Configuration["Keycloak:Authority"];
-        options.RequireHttpsMetadata = false; // False car on est en local HTTP avec Docker
-        
-       options.TokenValidationParameters = new TokenValidationParameters
+        options.MetadataAddress = "http://192.168.0.220:8080/realms/ai-cv-generator/.well-known/openid-configuration";
+        options.RequireHttpsMetadata = false;
+        options.BackchannelHttpHandler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        };
+        options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateAudience = false,
-            ValidateIssuer = true, // On vérifie l'émetteur
-            // On force l'API à accepter ces deux émetteurs, peu importe d'où vient la requête
-            ValidIssuers = new[] 
-            { 
-                "http://localhost:8080/realms/ai-cv-generator",
-                "http://keycloak:8080/realms/ai-cv-generator"
+            ValidateIssuer = true,
+            ValidIssuers = new[]
+            {
+                "https://192.168.0.210/realms/ai-cv-generator"
             }
         };
     });
-
 
 builder.Services.AddControllers();
 builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
-
-// ==========================================
-// 5. PIPELINE HTTP (MIDDLEWARES)
-// ==========================================
-
 if (!app.Environment.IsDevelopment())
-{
     app.UseHttpsRedirection();
-}
 
-// L'ordre des middlewares est strict !
 app.UseCors("AllowFrontend");
-
-app.UseAuthentication(); // 1. Vérifier QUI est l'utilisateur (JWT)
-app.UseAuthorization();  // 2. Vérifier s'il a les DROITS
-
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
-
-// Votre route de vérification de santé (très utile pour Docker/Proxmox !)
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "AiCv.Api" }));
-// ==========================================
-// 6. AUTO-MIGRATION DE LA BASE DE DONNÉES
-// ==========================================
+
 if (!app.Environment.IsEnvironment("Testing"))
 {
     using var scope = app.Services.CreateScope();
@@ -106,7 +80,6 @@ if (!app.Environment.IsEnvironment("Testing"))
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        // Cette ligne applique automatiquement toutes les migrations en attente au démarrage
         context.Database.Migrate();
         Console.WriteLine("✅ Base de données mise à jour avec succès.");
     }
