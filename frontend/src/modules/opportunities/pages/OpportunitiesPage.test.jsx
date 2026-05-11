@@ -48,6 +48,7 @@ describe("opportunity pages", () => {
     mockUsePrototypeApp.mockReturnValue({
       hydrated: true,
       jobOffers: [],
+      analyzeJobOffer: vi.fn(),
       deleteJobOffer: vi.fn(),
     });
 
@@ -69,20 +70,49 @@ describe("opportunity pages", () => {
 
     await user.type(screen.getByRole("textbox", { name: /job title/i }), "AI Engineer");
     await user.type(screen.getByRole("textbox", { name: /company name/i }), "OpenAI");
-    await user.type(screen.getByRole("textbox", { name: /location/i }), "Remote");
     await user.type(screen.getByRole("textbox", { name: /job description/i }), "Build AI features.");
     await user.click(screen.getByRole("button", { name: /analyze offer/i }));
 
     expect(createAnalyzedOffer).toHaveBeenCalledWith({
       jobTitle: "AI Engineer",
       companyName: "OpenAI",
-      location: "Remote",
       description: "Build AI features.",
     });
     expect(mockToastSuccess).toHaveBeenCalledWith(
       "Offer analyzed",
       "The job description was added and processed into a ready-to-use analysis.",
     );
+    expect(mockNavigate).toHaveBeenCalledWith(getJobAnalysisRoute("offer-2"));
+  });
+
+  it("shows analyze action for pending offers and routes after analysis", async () => {
+    const user = userEvent.setup();
+    const analyzeJobOffer = vi.fn().mockResolvedValue({ id: "offer-2" });
+
+    mockUsePrototypeApp.mockReturnValue({
+      hydrated: true,
+      analyzeJobOffer,
+      deleteJobOffer: vi.fn(),
+      jobOffers: [
+        {
+          id: "offer-2",
+          jobTitle: "Backend Developer",
+          companyName: "OpenAI",
+          location: "",
+          createdAt: "2026-05-11T00:00:00.000Z",
+          description: "Build APIs.",
+          status: "pending",
+          analysis: null,
+        },
+      ],
+    });
+
+    renderWithRouter(<OpportunitiesPage />);
+
+    await user.click(screen.getByRole("button", { name: /analyze offer/i }));
+
+    expect(analyzeJobOffer).toHaveBeenCalledWith("offer-2");
+    expect(mockToastSuccess).toHaveBeenCalledWith("Offer analyzed", "The job offer is now ready for CV generation.");
     expect(mockNavigate).toHaveBeenCalledWith(getJobAnalysisRoute("offer-2"));
   });
 
@@ -95,6 +125,7 @@ describe("opportunity pages", () => {
           companyName: "OpenAI",
           analysis: {
             matchScore: 85,
+            confidenceScore: 0.88,
             insight: "Frontend-focused role.",
             matchedSkills: ["React"],
             missingSkills: ["TypeScript"],
@@ -102,6 +133,13 @@ describe("opportunity pages", () => {
             keywords: ["frontend", "design systems"],
             responsibilities: ["Ship UI features"],
             technologies: ["Vite"],
+            detectedExperienceLevel: "mid-senior",
+            detectedLocation: "Remote",
+            detectedContractType: "full-time",
+            mustHaveRequirements: ["Strong React fundamentals"],
+            niceToHaveRequirements: ["Design system experience"],
+            cvFocusPoints: ["Highlight UI ownership"],
+            candidateRisks: ["Depth in TypeScript is still unclear"],
           },
         },
       ],
@@ -117,9 +155,18 @@ describe("opportunity pages", () => {
 
     expect(screen.getByText(/frontend engineer at openai/i)).toBeInTheDocument();
     expect(screen.getByText("85%")).toBeInTheDocument();
+    expect(screen.getByText("88%")).toBeInTheDocument();
     expect(screen.getByText("Frontend-focused role.")).toBeInTheDocument();
     expect(screen.getAllByText("TypeScript")).toHaveLength(2);
     expect(screen.getByText("Ship UI features")).toBeInTheDocument();
+    expect(screen.getByText(/how the model classified this role/i)).toBeInTheDocument();
+    expect(screen.getAllByText("mid-senior")).toHaveLength(2);
+    expect(screen.getAllByText("Remote")).toHaveLength(2);
+    expect(screen.getAllByText("full-time")).toHaveLength(2);
+    expect(screen.getByText("Strong React fundamentals")).toBeInTheDocument();
+    expect(screen.getByText("Design system experience")).toBeInTheDocument();
+    expect(screen.getByText("Highlight UI ownership")).toBeInTheDocument();
+    expect(screen.getByText("Depth in TypeScript is still unclear")).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 });

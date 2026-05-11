@@ -25,6 +25,10 @@ public class AppDbContext : DbContext
             ConfigureStringList(entity.Property(analysis => analysis.ExtractedKeywords));
             ConfigureStringList(entity.Property(analysis => analysis.ExtractedResponsibilities));
             ConfigureStringList(entity.Property(analysis => analysis.DetectedTechnologies));
+            ConfigureStringList(entity.Property(analysis => analysis.MustHaveRequirements));
+            ConfigureStringList(entity.Property(analysis => analysis.NiceToHaveRequirements));
+            ConfigureStringList(entity.Property(analysis => analysis.CvFocusPoints));
+            ConfigureStringList(entity.Property(analysis => analysis.CandidateRisks));
 
             entity.HasOne(analysis => analysis.JobOffer)
                 .WithOne(jobOffer => jobOffer.Analysis)

@@ -184,12 +184,21 @@ public class OpportunityService
 
         analysis.ExtractedKeywords = aiResponse.ExtractedKeywords;
         analysis.ExtractedSkills = aiResponse.SuggestedSkills;
-        analysis.ExtractedResponsibilities = [];
-        analysis.DetectedExperienceLevel = string.Empty;
-        analysis.DetectedLocation = string.Empty;
-        analysis.DetectedContractType = string.Empty;
-        analysis.DetectedTechnologies = [];
-        analysis.AnalysisSummary = $"Estimated match score: {aiResponse.MatchScoreEstimation}%";
+        analysis.ExtractedResponsibilities = aiResponse.ExtractedResponsibilities;
+        analysis.DetectedExperienceLevel = aiResponse.DetectedExperienceLevel;
+        analysis.DetectedLocation = aiResponse.DetectedLocation;
+        analysis.DetectedContractType = aiResponse.DetectedContractType;
+        analysis.DetectedTechnologies = aiResponse.DetectedTechnologies;
+        analysis.MustHaveRequirements = aiResponse.MustHaveRequirements;
+        analysis.NiceToHaveRequirements = aiResponse.NiceToHaveRequirements;
+        analysis.CvFocusPoints = aiResponse.CvFocusPoints;
+        analysis.CandidateRisks = aiResponse.CandidateRisks;
+        analysis.AnalysisSummary = string.IsNullOrWhiteSpace(aiResponse.AnalysisSummary)
+            ? $"Estimated match score: {aiResponse.MatchScoreEstimation}%"
+            : aiResponse.AnalysisSummary.Trim();
+        analysis.MatchScoreEstimation = aiResponse.MatchScoreEstimation;
+        analysis.ConfidenceScore = aiResponse.ConfidenceScore;
+        analysis.ReasoningSummary = aiResponse.ReasoningSummary;
         analysis.RawAnalysisJson = JsonSerializer.Serialize(aiResponse);
         analysis.CreatedAt = DateTime.UtcNow;
     }
@@ -217,7 +226,14 @@ public class OpportunityService
                 DetectedLocation = jobOffer.Analysis.DetectedLocation,
                 DetectedContractType = jobOffer.Analysis.DetectedContractType,
                 DetectedTechnologies = jobOffer.Analysis.DetectedTechnologies,
+                MustHaveRequirements = jobOffer.Analysis.MustHaveRequirements,
+                NiceToHaveRequirements = jobOffer.Analysis.NiceToHaveRequirements,
+                CvFocusPoints = jobOffer.Analysis.CvFocusPoints,
+                CandidateRisks = jobOffer.Analysis.CandidateRisks,
                 AnalysisSummary = jobOffer.Analysis.AnalysisSummary,
+                MatchScoreEstimation = jobOffer.Analysis.MatchScoreEstimation,
+                ConfidenceScore = jobOffer.Analysis.ConfidenceScore,
+                ReasoningSummary = jobOffer.Analysis.ReasoningSummary,
                 RawAnalysisJson = jobOffer.Analysis.RawAnalysisJson,
                 CreatedAt = jobOffer.Analysis.CreatedAt,
             },

@@ -15,7 +15,6 @@ export function AddJobOfferPage() {
   const [form, setForm] = useState({
     jobTitle: "",
     companyName: "",
-    location: "",
     description: "",
   });
 
@@ -51,10 +50,6 @@ export function AddJobOfferPage() {
           <label className="space-y-2">
             <span className="text-sm font-semibold text-foreground">Company name</span>
             <input className="field" value={form.companyName} onChange={(event) => setForm((current) => ({ ...current, companyName: event.target.value }))} required />
-          </label>
-          <label className="space-y-2 md:col-span-2">
-            <span className="text-sm font-semibold text-foreground">Location</span>
-            <input className="field" value={form.location} onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))} required />
           </label>
           <label className="space-y-2 md:col-span-2">
             <span className="text-sm font-semibold text-foreground">Job description</span>
