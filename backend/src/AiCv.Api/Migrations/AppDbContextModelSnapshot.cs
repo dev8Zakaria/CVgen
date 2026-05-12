@@ -95,8 +95,19 @@ namespace AiCv.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("CandidateRisks")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double>("ConfidenceScore")
+                        .HasColumnType("double precision");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CvFocusPoints")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("DetectedContractType")
                         .IsRequired()
@@ -129,7 +140,22 @@ namespace AiCv.Api.Migrations
                     b.Property<Guid>("JobOfferId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("MatchScoreEstimation")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MustHaveRequirements")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NiceToHaveRequirements")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("RawAnalysisJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReasoningSummary")
                         .IsRequired()
                         .HasColumnType("text");
 

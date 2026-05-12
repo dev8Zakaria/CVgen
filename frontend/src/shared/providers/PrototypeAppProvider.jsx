@@ -53,8 +53,7 @@ function createAnalysisFromBackend(opportunity, profile) {
   );
 
   const missingSkills = (analysis?.extractedSkills || []).filter((skill) => !matchedSkills.includes(skill)).slice(0, 4);
-  const matchScoreMatch = analysis?.analysisSummary?.match(/(\d+)%/);
-  const matchScore = matchScoreMatch ? Number(matchScoreMatch[1]) : 0;
+  const matchScore = analysis?.matchScoreEstimation || 0;
 
   return {
     extractedSkills: analysis?.extractedSkills || [],
@@ -63,6 +62,15 @@ function createAnalysisFromBackend(opportunity, profile) {
     keywords: analysis?.extractedKeywords || [],
     responsibilities: analysis?.extractedResponsibilities || [],
     technologies: analysis?.detectedTechnologies || [],
+    detectedExperienceLevel: analysis?.detectedExperienceLevel || "",
+    detectedLocation: analysis?.detectedLocation || "",
+    detectedContractType: analysis?.detectedContractType || "",
+    mustHaveRequirements: analysis?.mustHaveRequirements || [],
+    niceToHaveRequirements: analysis?.niceToHaveRequirements || [],
+    cvFocusPoints: analysis?.cvFocusPoints || [],
+    candidateRisks: analysis?.candidateRisks || [],
+    confidenceScore: analysis?.confidenceScore || 0,
+    reasoningSummary: analysis?.reasoningSummary || "",
     insight:
       analysis?.analysisSummary ||
       "The backend analysis is available, but it did not return a text summary for this role yet.",
@@ -349,19 +357,47 @@ export function PrototypeAppProvider({ children }) {
     });
 
     const createdId = createResponse.data.id;
-    const nextMeta = {
-      ...offerMeta,
-      [createdId]: {
-        location: payload.location,
-      },
-    };
-    setOfferMeta(nextMeta);
-
     const analyzedResponse = await opportunityService.analyzeOpportunity(createdId);
-    const mappedOffer = mapBackendOpportunity(analyzedResponse.data, nextMeta[createdId], profile);
+    const mappedOffer = mapBackendOpportunity(analyzedResponse.data, offerMeta[createdId], profile);
 
     setJobOffers((current) => [mappedOffer, ...current.filter((offer) => offer.id !== createdId)]);
     return createdId;
+  };
+
+  const analyzeJobOffer = async (id) => {
+    if (!authEnabled || !authenticated) {
+      throw new Error("Authenticated backend session required");
+    }
+
+    setJobOffers((current) =>
+      current.map((offer) =>
+        offer.id === id
+          ? {
+              ...offer,
+              status: "processing",
+            }
+          : offer,
+      ),
+    );
+
+    try {
+      const response = await opportunityService.analyzeOpportunity(id);
+      const mappedOffer = mapBackendOpportunity(response.data, offerMeta[id], profile);
+      setJobOffers((current) => current.map((offer) => (offer.id === id ? mappedOffer : offer)));
+      return mappedOffer;
+    } catch (error) {
+      setJobOffers((current) =>
+        current.map((offer) =>
+          offer.id === id
+            ? {
+                ...offer,
+                status: "failed",
+              }
+            : offer,
+        ),
+      );
+      throw error;
+    }
   };
 
   const updateJobOffer = async (id, payload) => {
@@ -444,6 +480,7 @@ export function PrototypeAppProvider({ children }) {
     addSkill,
     removeSkill,
     createAnalyzedOffer,
+    analyzeJobOffer,
     updateJobOffer,
     deleteJobOffer,
     generateCv,

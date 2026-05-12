@@ -39,7 +39,7 @@ services:
       - keycloak
     networks:
       - aicv-network
-  
+
   ai-service:
     build:
       context: ./ai-service
@@ -50,6 +50,10 @@ services:
     environment:
       - ENVIRONMENT=${ENVIRONMENT:-Development}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ENVIRONMENT=Development
+      - AI_PROVIDER=${AI_PROVIDER:-gemini}
+      - AI_MODEL=${AI_MODEL:-gemini-3-flash-preview}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     networks:
       - aicv-network
 

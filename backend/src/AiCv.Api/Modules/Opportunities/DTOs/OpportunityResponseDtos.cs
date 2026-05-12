@@ -21,7 +21,14 @@ public class OpportunityAnalysisDto
     public string DetectedLocation { get; set; } = string.Empty;
     public string DetectedContractType { get; set; } = string.Empty;
     public List<string> DetectedTechnologies { get; set; } = [];
+    public List<string> MustHaveRequirements { get; set; } = [];
+    public List<string> NiceToHaveRequirements { get; set; } = [];
+    public List<string> CvFocusPoints { get; set; } = [];
+    public List<string> CandidateRisks { get; set; } = [];
     public string AnalysisSummary { get; set; } = string.Empty;
+    public int MatchScoreEstimation { get; set; }
+    public double ConfidenceScore { get; set; }
+    public string ReasoningSummary { get; set; } = string.Empty;
     public string RawAnalysisJson { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }
