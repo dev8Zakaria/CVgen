@@ -34,7 +34,7 @@ public class ProfileController : ControllerBase
 
     // PUT: /api/profile/me
     [HttpPut("me")]
-    public async Task<IActionResult> UpdateMyProfile([FromBody] ProfileUpdateRequestDto request)
+    public async Task<IActionResult> UpdateMyProfile([FromBody] ProfileUpdateDto request)
     {
         var keycloakId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(keycloakId)) return Unauthorized();

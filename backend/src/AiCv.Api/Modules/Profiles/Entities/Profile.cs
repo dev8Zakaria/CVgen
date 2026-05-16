@@ -20,4 +20,11 @@ public class Profile
     public string Phone { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public ICollection<Experience> Experiences { get; set; } = new List<Experience>();
+    public ICollection<Education> Educations { get; set; } = new List<Education>();
+    public ICollection<Project> Projects { get; set; } = new List<Project>();
+    public ICollection<Skill> Skills { get; set; } = new List<Skill>();
+    public ICollection<Language> Languages { get; set; } = new List<Language>();
+    public ICollection<Certification> Certifications { get; set; } = new List<Certification>();
+
 }

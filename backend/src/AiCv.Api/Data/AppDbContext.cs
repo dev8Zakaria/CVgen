@@ -13,6 +13,12 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<Profile> Profiles { get; set; }
+    public DbSet<Experience> Experiences { get; set; }
+    public DbSet<Education> Educations { get; set; }
+    public DbSet<Project> Projects { get; set; }
+    public DbSet<Skill> Skills { get; set; }
+    public DbSet<Language> Languages { get; set; }
+    public DbSet<Certification> Certifications { get; set; }
     public DbSet<Cv> Cvs { get; set; }
     public DbSet<JobOffer> JobOffers { get; set; }
     public DbSet<JobOfferAnalysis> JobOfferAnalyses { get; set; }
@@ -31,7 +37,38 @@ public class AppDbContext : DbContext
             ConfigureStringList(entity.Property(analysis => analysis.NiceToHaveRequirements));
             ConfigureStringList(entity.Property(analysis => analysis.CvFocusPoints));
             ConfigureStringList(entity.Property(analysis => analysis.CandidateRisks));
-
+            modelBuilder.Entity<Profile>(entity =>
+            {
+                entity.HasMany(p => p.Experiences)
+                    .WithOne(e => e.Profile)
+                    .HasForeignKey(e => e.ProfileId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            
+                entity.HasMany(p => p.Educations)
+                    .WithOne(e => e.Profile)
+                    .HasForeignKey(e => e.ProfileId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            
+                entity.HasMany(p => p.Projects)
+                    .WithOne(e => e.Profile)
+                    .HasForeignKey(e => e.ProfileId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            
+                entity.HasMany(p => p.Skills)
+                    .WithOne(e => e.Profile)
+                    .HasForeignKey(e => e.ProfileId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            
+                entity.HasMany(p => p.Languages)
+                    .WithOne(e => e.Profile)
+                    .HasForeignKey(e => e.ProfileId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            
+                entity.HasMany(p => p.Certifications)
+                    .WithOne(e => e.Profile)
+                    .HasForeignKey(e => e.ProfileId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
             entity.HasOne(analysis => analysis.JobOffer)
                 .WithOne(jobOffer => jobOffer.Analysis)
                 .HasForeignKey<JobOfferAnalysis>(analysis => analysis.JobOfferId)

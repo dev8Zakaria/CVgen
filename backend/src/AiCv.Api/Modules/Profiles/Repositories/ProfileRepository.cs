@@ -17,8 +17,20 @@ public class ProfileRepository
     {
         return await _context.Users
             .Include(u => u.Profile)
+                .ThenInclude(p => p.Experiences)
+            .Include(u => u.Profile)
+                .ThenInclude(p => p.Educations)
+            .Include(u => u.Profile)
+                .ThenInclude(p => p.Projects)
+            .Include(u => u.Profile)
+                .ThenInclude(p => p.Skills)
+            .Include(u => u.Profile)
+                .ThenInclude(p => p.Languages)
+            .Include(u => u.Profile)
+                .ThenInclude(p => p.Certifications)
             .FirstOrDefaultAsync(u => u.KeycloakId == keycloakId);
     }
+    
 
     public async Task AddUserAsync(User user)
     {
