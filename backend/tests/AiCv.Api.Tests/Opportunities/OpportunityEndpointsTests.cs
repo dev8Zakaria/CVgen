@@ -445,7 +445,6 @@ public class OpportunityEndpointsTests : IClassFixture<CustomWebApplicationFacto
         analyzed.Analysis!.ExtractedKeywords.Should().Contain(["FastAPI", "Docker"]);
         analyzed.Analysis.ExtractedSkills.Should().Contain(["C#", "Python"]);
         analyzed.Analysis.AnalysisSummary.Should().Be("Backend-focused role emphasizing APIs, Docker, and distributed systems.");
-        analyzed.Analysis.MatchScoreEstimation.Should().Be(85);
         analyzed.Analysis.MustHaveRequirements.Should().Contain("Strong C# and .NET experience");
     }
 

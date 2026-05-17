@@ -187,7 +187,6 @@ function createAnalysisFromBackend(opportunity, profile) {
   );
 
   const missingSkills = (analysis?.extractedSkills || []).filter((skill) => !matchedSkills.includes(skill)).slice(0, 4);
-  const matchScore = analysis?.matchScoreEstimation || 0;
 
   return {
     extractedSkills: analysis?.extractedSkills || [],
@@ -203,12 +202,10 @@ function createAnalysisFromBackend(opportunity, profile) {
     niceToHaveRequirements: analysis?.niceToHaveRequirements || [],
     cvFocusPoints: analysis?.cvFocusPoints || [],
     candidateRisks: analysis?.candidateRisks || [],
-    confidenceScore: analysis?.confidenceScore || 0,
     reasoningSummary: analysis?.reasoningSummary || "",
     insight:
       analysis?.analysisSummary ||
       "The backend analysis is available, but it did not return a text summary for this role yet.",
-    matchScore,
   };
 }
 
@@ -306,7 +303,6 @@ function createLocalCvFromGeneratedResponse(response, offer, profile, existingCo
       target: {
         role: response.target.jobTitle,
         company: response.target.companyName,
-        matchScore: offer.analysis?.matchScore || 0,
       },
     },
   };

@@ -1,5 +1,5 @@
 import { ArrowRight, Sparkles } from "lucide-react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/modules/auth/AuthProvider";
@@ -8,11 +8,8 @@ import { ROUTES } from "@/shared/constants/routes";
 import { useTheme } from "@/shared/providers/ThemeProvider";
 
 export function MainLayout() {
-  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { authEnabled, authenticated, initialized, login, logout } = useAuth();
-
-  const redirectUri = `${window.location.origin}${location.pathname}`;
 
   return (
     <div className="min-h-screen px-4 py-4 md:px-6">
@@ -32,7 +29,7 @@ export function MainLayout() {
                   </Button>
                 </>
               ) : authEnabled ? (
-                <Button type="button" onClick={() => login?.({ redirectUri })}>
+                <Button type="button" onClick={() => login?.({ redirectUri: `${window.location.origin}${ROUTES.dashboard}` })}>
                   Login
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>

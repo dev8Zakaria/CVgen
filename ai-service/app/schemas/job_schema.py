@@ -24,6 +24,4 @@ class JobOfferResponse(BaseModel):
     nice_to_have_requirements: list[str] = Field(default_factory=list, description="Requirements that seem beneficial but not strictly mandatory.")
     cv_focus_points: list[str] = Field(default_factory=list, description="Concrete suggestions for what the user's CV should emphasize for this role.")
     candidate_risks: list[str] = Field(default_factory=list, description="Potential fit risks or likely gaps suggested by the job description.")
-    match_score_estimation: int = Field(ge=0, le=100, description="Estimated fit score on a 0 to 100 scale based only on the job description signal.")
-    confidence_score: float = Field(ge=0.0, le=1.0, description="Model confidence in the quality and clarity of the analysis, from 0 to 1.")
     reasoning_summary: str = Field(description="Short explanation of what most influenced the estimated score.")

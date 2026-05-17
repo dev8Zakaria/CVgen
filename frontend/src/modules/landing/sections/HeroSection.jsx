@@ -63,7 +63,7 @@ export function HeroSection() {
             <p className="text-sm text-slate-400">Generation pipeline</p>
             <div className="mt-6 space-y-4 font-mono text-sm">
               <p>profile.json + opportunity.txt</p>
-              <p className="text-cyan-300">analysis.matchScore = 92%</p>
+              <p className="text-cyan-300">analysis.status = "structured"</p>
               <p className="text-emerald-300">cv.status = "ready"</p>
             </div>
           </div>

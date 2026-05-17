@@ -19,8 +19,6 @@ public sealed class FakeAiService : IAiService
         NiceToHaveRequirements = ["Cloud deployment experience"],
         CvFocusPoints = ["Highlight backend API projects"],
         CandidateRisks = ["Role may expect deeper cloud production experience"],
-        MatchScoreEstimation = 85,
-        ConfidenceScore = 0.88,
         ReasoningSummary = "Strong alignment with backend APIs and containerized workflows.",
     };
 
@@ -53,8 +51,6 @@ public sealed class FakeAiService : IAiService
             NiceToHaveRequirements = ["Cloud deployment experience"],
             CvFocusPoints = ["Highlight backend API projects"],
             CandidateRisks = ["Role may expect deeper cloud production experience"],
-            MatchScoreEstimation = 85,
-            ConfidenceScore = 0.88,
             ReasoningSummary = "Strong alignment with backend APIs and containerized workflows.",
         };
     }

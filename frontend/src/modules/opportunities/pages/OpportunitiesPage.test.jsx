@@ -124,8 +124,6 @@ describe("opportunity pages", () => {
           jobTitle: "Frontend Engineer",
           companyName: "OpenAI",
           analysis: {
-            matchScore: 85,
-            confidenceScore: 0.88,
             insight: "Frontend-focused role.",
             matchedSkills: ["React"],
             missingSkills: ["TypeScript"],
@@ -154,8 +152,6 @@ describe("opportunity pages", () => {
     );
 
     expect(screen.getByText(/frontend engineer at openai/i)).toBeInTheDocument();
-    expect(screen.getByText("85%")).toBeInTheDocument();
-    expect(screen.getByText("88%")).toBeInTheDocument();
     expect(screen.getByText("Frontend-focused role.")).toBeInTheDocument();
     expect(screen.getAllByText("TypeScript")).toHaveLength(2);
     expect(screen.getByText("Ship UI features")).toBeInTheDocument();

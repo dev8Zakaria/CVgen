@@ -1,5 +1,5 @@
 import { ArrowRight, Bot, FileText, Layers3, Sparkles, Target } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/modules/auth/AuthProvider";
@@ -25,7 +25,11 @@ const cards = [
 ];
 
 export function LandingPage() {
-  const { authEnabled, authenticated, login } = useAuth();
+  const { authEnabled, authenticated, initialized, login } = useAuth();
+
+  if (authEnabled && initialized && authenticated) {
+    return <Navigate to={ROUTES.dashboard} replace />;
+  }
 
   return (
     <main className="mx-auto max-w-[1360px] px-6 py-10 md:px-10 md:py-16">

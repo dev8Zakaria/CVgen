@@ -51,9 +51,7 @@ class MockJobAnalysisProvider:
                 "Show measurable impact on reliability or performance",
             ],
             candidate_risks=["Role may expect deeper cloud production experience"],
-            match_score_estimation=85,
-            confidence_score=0.88,
-            reasoning_summary="The score is driven by alignment with backend engineering, API development, and containerized workflows.",
+            reasoning_summary="The analysis is driven by backend engineering, API development, and containerized workflows.",
         )
 
 
@@ -125,8 +123,6 @@ Rules:
 - Put optional or beneficial items in nice_to_have_requirements.
 - cv_focus_points should be concrete advice for tailoring a CV to this role.
 - candidate_risks should mention realistic fit risks implied by the posting.
-- match_score_estimation is a heuristic score from 0 to 100 based on how strong and favorable the role signal looks for a broadly aligned software candidate, not a specific user profile.
-- confidence_score is from 0 to 1 and reflects how clear and complete the job description is for making this analysis.
 - reasoning_summary must be one short sentence.
 - detected_experience_level must be one of: intern, junior, mid, mid-senior, senior, lead, unknown.
 - detected_contract_type must be one of: full-time, part-time, internship, freelance, contract, unknown.

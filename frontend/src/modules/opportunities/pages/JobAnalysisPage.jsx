@@ -57,7 +57,6 @@ export function JobAnalysisPage() {
   }
 
   const analysis = offer.analysis;
-  const confidencePercent = Math.round((analysis.confidenceScore || 0) * 100);
 
   return (
     <div className="space-y-6">
@@ -75,14 +74,7 @@ export function JobAnalysisPage() {
 
       <div className="grid gap-5 xl:grid-cols-4">
         <div className="paper-panel xl:col-span-2 p-6">
-          <p className="font-mono text-[0.68rem] uppercase tracking-[0.3em] text-muted-foreground">AI Match Score</p>
-          <div className="mt-4 flex items-end justify-between gap-4">
-            <p className="font-display text-6xl tracking-[-0.07em] text-foreground">{analysis.matchScore}%</p>
-            <div className="rounded-[22px] border border-primary/15 bg-primary/10 px-4 py-3 text-right">
-              <p className="font-mono text-[0.68rem] uppercase tracking-[0.3em] text-primary">Confidence</p>
-              <p className="mt-2 font-display text-3xl tracking-[-0.05em] text-foreground">{confidencePercent}%</p>
-            </div>
-          </div>
+          <p className="font-mono text-[0.68rem] uppercase tracking-[0.3em] text-muted-foreground">Analysis Summary</p>
           <p className="mt-4 text-sm leading-7 text-muted-foreground">{analysis.insight}</p>
         </div>
 

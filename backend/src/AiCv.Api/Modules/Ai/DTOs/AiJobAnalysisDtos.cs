@@ -46,12 +46,6 @@ public sealed class AiJobAnalysisResponseDto
     [JsonPropertyName("candidate_risks")]
     public List<string> CandidateRisks { get; set; } = [];
 
-    [JsonPropertyName("match_score_estimation")]
-    public int MatchScoreEstimation { get; set; }
-
-    [JsonPropertyName("confidence_score")]
-    public double ConfidenceScore { get; set; }
-
     [JsonPropertyName("reasoning_summary")]
     public string ReasoningSummary { get; set; } = string.Empty;
 }

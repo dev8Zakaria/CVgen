@@ -26,8 +26,6 @@ public class OpportunityAnalysisDto
     public List<string> CvFocusPoints { get; set; } = [];
     public List<string> CandidateRisks { get; set; } = [];
     public string AnalysisSummary { get; set; } = string.Empty;
-    public int MatchScoreEstimation { get; set; }
-    public double ConfidenceScore { get; set; }
     public string ReasoningSummary { get; set; } = string.Empty;
     public string RawAnalysisJson { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

@@ -158,7 +158,7 @@ export function GenerateCvPage() {
                     <p className="font-semibold text-foreground">{offer.jobTitle}</p>
                     <p className="text-sm text-muted-foreground">{offer.companyName} · {offer.location}</p>
                   </div>
-                  <StatusPill tone="success">{offer.analysis.matchScore}% match</StatusPill>
+                  <StatusPill tone="success">Analyzed</StatusPill>
                 </div>
               </button>
             ))}

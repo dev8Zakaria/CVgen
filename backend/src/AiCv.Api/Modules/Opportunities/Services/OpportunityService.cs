@@ -194,10 +194,8 @@ public class OpportunityService
         analysis.CvFocusPoints = aiResponse.CvFocusPoints;
         analysis.CandidateRisks = aiResponse.CandidateRisks;
         analysis.AnalysisSummary = string.IsNullOrWhiteSpace(aiResponse.AnalysisSummary)
-            ? $"Estimated match score: {aiResponse.MatchScoreEstimation}%"
+            ? "Analysis completed. Review the extracted skills, responsibilities, requirements, and CV guidance below."
             : aiResponse.AnalysisSummary.Trim();
-        analysis.MatchScoreEstimation = aiResponse.MatchScoreEstimation;
-        analysis.ConfidenceScore = aiResponse.ConfidenceScore;
         analysis.ReasoningSummary = aiResponse.ReasoningSummary;
         analysis.RawAnalysisJson = JsonSerializer.Serialize(aiResponse);
         analysis.CreatedAt = DateTime.UtcNow;
@@ -231,8 +229,6 @@ public class OpportunityService
                 CvFocusPoints = jobOffer.Analysis.CvFocusPoints,
                 CandidateRisks = jobOffer.Analysis.CandidateRisks,
                 AnalysisSummary = jobOffer.Analysis.AnalysisSummary,
-                MatchScoreEstimation = jobOffer.Analysis.MatchScoreEstimation,
-                ConfidenceScore = jobOffer.Analysis.ConfidenceScore,
                 ReasoningSummary = jobOffer.Analysis.ReasoningSummary,
                 RawAnalysisJson = jobOffer.Analysis.RawAnalysisJson,
                 CreatedAt = jobOffer.Analysis.CreatedAt,
