@@ -107,7 +107,7 @@ export function ProfilePage() {
           </div>
           {usingBackendData ? (
             <p className="mt-4 text-xs leading-6 text-muted-foreground">
-              Full name and email are sourced from your authenticated identity/backend profile. Title, summary, phone, and address are saved to the backend.
+              Full name and email are sourced from your authenticated identity/backend profile. All profile sections on this page now save through the backend profile endpoint.
             </p>
           ) : null}
         </div>
@@ -121,14 +121,22 @@ export function ProfilePage() {
           />
           <div className="mt-6">
             <InlineTagEditor
-              items={profile.skills}
-              onAdd={(skill) => {
-                addSkill(skill);
-                toast.success("Skill added", `"${skill}" is now part of your profile skill set.`);
+              items={profile.skills.map((skill) => skill.name)}
+              onAdd={async (skill) => {
+                try {
+                  await addSkill(skill);
+                  toast.success("Skill added", `"${skill}" is now part of your profile skill set.`);
+                } catch {
+                  toast.error("Skill update failed", "We could not save the skill to the backend.");
+                }
               }}
-              onRemove={(skill) => {
-                removeSkill(skill);
-                toast.success("Skill removed", `"${skill}" was removed from the profile.`);
+              onRemove={async (skill) => {
+                try {
+                  await removeSkill(skill);
+                  toast.success("Skill removed", `"${skill}" was removed from the profile.`);
+                } catch {
+                  toast.error("Skill update failed", "We could not remove the skill from the backend.");
+                }
               }}
               placeholder="Add skill, e.g. Prompt Design"
             />
@@ -140,48 +148,63 @@ export function ProfilePage() {
         title="Education"
         description="Degrees, programs, and formal learning that strengthen the narrative."
         items={profile.education}
-        onSave={(item) => {
-          saveCollectionItem("education", item);
-          toast.success("Education updated", "Your education section has been refreshed.");
+        onSave={async (item) => {
+          try {
+            await saveCollectionItem("education", item);
+            toast.success("Education updated", "Your education section has been refreshed.");
+          } catch {
+            toast.error("Education update failed", "We could not save this education entry to the backend.");
+            throw new Error("Education update failed");
+          }
         }}
-        onDelete={(id) => {
-          removeCollectionItem("education", id);
-          toast.success("Education removed");
+        onDelete={async (id) => {
+          try {
+            await removeCollectionItem("education", id);
+            toast.success("Education removed");
+          } catch {
+            toast.error("Education delete failed", "We could not remove this education entry from the backend.");
+            throw new Error("Education delete failed");
+          }
         }}
         emptyCopy="No education entries yet."
         fields={[
           { name: "school", label: "School" },
           { name: "degree", label: "Degree" },
-          { name: "period", label: "Period" },
-          { name: "location", label: "Location" },
+          { name: "field", label: "Field" },
+          { name: "startDate", label: "Start date", type: "date" },
+          { name: "endDate", label: "End date", type: "date" },
         ]}
       />
 
       <CollectionEditorCard
         title="Work Experience"
         description="Keep each role sharp, concrete, and outcome-driven."
-        items={profile.experience.map((entry) => ({ ...entry, bullets: entry.bullets.join(" • ") }))}
-        onSave={(item) => {
-          saveCollectionItem("experience", {
-            ...item,
-            bullets: String(item.bullets || "")
-              .split("•")
-              .map((bullet) => bullet.trim())
-              .filter(Boolean),
-          });
-          toast.success("Experience updated");
+        items={profile.experience}
+        onSave={async (item) => {
+          try {
+            await saveCollectionItem("experience", item);
+            toast.success("Experience updated");
+          } catch {
+            toast.error("Experience update failed", "We could not save this experience entry to the backend.");
+            throw new Error("Experience update failed");
+          }
         }}
-        onDelete={(id) => {
-          removeCollectionItem("experience", id);
-          toast.success("Experience removed");
+        onDelete={async (id) => {
+          try {
+            await removeCollectionItem("experience", id);
+            toast.success("Experience removed");
+          } catch {
+            toast.error("Experience delete failed", "We could not remove this experience entry from the backend.");
+            throw new Error("Experience delete failed");
+          }
         }}
         emptyCopy="No work experience entries yet."
         fields={[
           { name: "company", label: "Company" },
-          { name: "role", label: "Role" },
-          { name: "period", label: "Period" },
-          { name: "location", label: "Location" },
-          { name: "bullets", label: "Bullet points", multiline: true, rows: 5 },
+          { name: "position", label: "Position" },
+          { name: "startDate", label: "Start date", type: "date" },
+          { name: "endDate", label: "End date", type: "date" },
+          { name: "description", label: "Description", multiline: true, rows: 5 },
         ]}
       />
 
@@ -189,18 +212,29 @@ export function ProfilePage() {
         title="Projects"
         description="Add proof-of-work that gives recruiters and the AI engine more depth."
         items={profile.projects}
-        onSave={(item) => {
-          saveCollectionItem("projects", item);
-          toast.success("Project updated");
+        onSave={async (item) => {
+          try {
+            await saveCollectionItem("projects", item);
+            toast.success("Project updated");
+          } catch {
+            toast.error("Project update failed", "We could not save this project entry to the backend.");
+            throw new Error("Project update failed");
+          }
         }}
-        onDelete={(id) => {
-          removeCollectionItem("projects", id);
-          toast.success("Project removed");
+        onDelete={async (id) => {
+          try {
+            await removeCollectionItem("projects", id);
+            toast.success("Project removed");
+          } catch {
+            toast.error("Project delete failed", "We could not remove this project entry from the backend.");
+            throw new Error("Project delete failed");
+          }
         }}
         emptyCopy="No projects yet."
         fields={[
           { name: "name", label: "Project name" },
-          { name: "role", label: "Role" },
+          { name: "technologies", label: "Technologies" },
+          { name: "url", label: "Project URL", type: "url" },
           { name: "description", label: "Description", multiline: true, rows: 4 },
         ]}
       />
@@ -210,13 +244,23 @@ export function ProfilePage() {
           title="Languages"
           description="Show linguistic flexibility for international roles."
           items={profile.languages}
-          onSave={(item) => {
-            saveCollectionItem("languages", item);
-            toast.success("Language updated");
+          onSave={async (item) => {
+            try {
+              await saveCollectionItem("languages", item);
+              toast.success("Language updated");
+            } catch {
+              toast.error("Language update failed", "We could not save this language entry to the backend.");
+              throw new Error("Language update failed");
+            }
           }}
-          onDelete={(id) => {
-            removeCollectionItem("languages", id);
-            toast.success("Language removed");
+          onDelete={async (id) => {
+            try {
+              await removeCollectionItem("languages", id);
+              toast.success("Language removed");
+            } catch {
+              toast.error("Language delete failed", "We could not remove this language entry from the backend.");
+              throw new Error("Language delete failed");
+            }
           }}
           emptyCopy="No language entries yet."
           fields={[
@@ -229,13 +273,23 @@ export function ProfilePage() {
           title="Certifications"
           description="Capture signals of depth, rigor, and current practice."
           items={profile.certifications}
-          onSave={(item) => {
-            saveCollectionItem("certifications", item);
-            toast.success("Certification updated");
+          onSave={async (item) => {
+            try {
+              await saveCollectionItem("certifications", item);
+              toast.success("Certification updated");
+            } catch {
+              toast.error("Certification update failed", "We could not save this certification entry to the backend.");
+              throw new Error("Certification update failed");
+            }
           }}
-          onDelete={(id) => {
-            removeCollectionItem("certifications", id);
-            toast.success("Certification removed");
+          onDelete={async (id) => {
+            try {
+              await removeCollectionItem("certifications", id);
+              toast.success("Certification removed");
+            } catch {
+              toast.error("Certification delete failed", "We could not remove this certification entry from the backend.");
+              throw new Error("Certification delete failed");
+            }
           }}
           emptyCopy="No certifications yet."
           fields={[

@@ -22,6 +22,139 @@ function createEmptyExtras() {
   };
 }
 
+function toDateInput(value) {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value.slice(0, 10);
+  }
+
+  return "";
+}
+
+function formatDateRange(startDate, endDate) {
+  const start = toDateInput(startDate);
+  const end = toDateInput(endDate);
+
+  if (!start && !end) {
+    return "";
+  }
+
+  if (!end) {
+    return `${start} - Present`;
+  }
+
+  return `${start} - ${end}`;
+}
+
+function toUtcIsoDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = String(value).trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}T00:00:00.000Z`;
+  }
+
+  return trimmed;
+}
+
+function normalizeSkill(skill) {
+  if (typeof skill === "string") {
+    return {
+      id: "",
+      name: skill,
+      level: "",
+      category: "",
+    };
+  }
+
+  return {
+    id: skill?.id || "",
+    name: skill?.name || "",
+    level: skill?.level || "",
+    category: skill?.category || "",
+  };
+}
+
+function normalizeExperience(entry) {
+  const bullets = Array.isArray(entry?.bullets)
+    ? entry.bullets
+    : String(entry?.description || "")
+        .split(/\r?\n/)
+        .map((bullet) => bullet.trim())
+        .filter(Boolean);
+
+  return {
+    id: entry?.id || "",
+    company: entry?.company || "",
+    position: entry?.position || entry?.role || "",
+    startDate: toDateInput(entry?.startDate),
+    endDate: toDateInput(entry?.endDate),
+    description: entry?.description || bullets.join("\n"),
+    role: entry?.position || entry?.role || "",
+    period: formatDateRange(entry?.startDate, entry?.endDate) || entry?.period || "",
+    location: entry?.location || "",
+    bullets,
+  };
+}
+
+function normalizeEducation(entry) {
+  return {
+    id: entry?.id || "",
+    school: entry?.school || "",
+    degree: entry?.degree || "",
+    field: entry?.field || entry?.location || "",
+    startDate: toDateInput(entry?.startDate),
+    endDate: toDateInput(entry?.endDate),
+  };
+}
+
+function normalizeProject(entry) {
+  return {
+    id: entry?.id || "",
+    name: entry?.name || "",
+    description: entry?.description || "",
+    technologies: entry?.technologies || entry?.role || "",
+    url: entry?.url || "",
+  };
+}
+
+function normalizeLanguage(entry) {
+  return {
+    id: entry?.id || "",
+    name: entry?.name || "",
+    level: entry?.level || "",
+  };
+}
+
+function normalizeCertification(entry) {
+  return {
+    id: entry?.id || "",
+    title: entry?.title || "",
+    issuer: entry?.issuer || "",
+    year: entry?.year || "",
+  };
+}
+
+function mapLocalExtrasToProfileCollections(extras) {
+  return {
+    education: (extras?.education || []).map(normalizeEducation),
+    experience: (extras?.experience || []).map(normalizeExperience),
+    skills: (extras?.skills || []).map(normalizeSkill),
+    projects: (extras?.projects || []).map(normalizeProject),
+    languages: (extras?.languages || []).map(normalizeLanguage),
+    certifications: (extras?.certifications || []).map(normalizeCertification),
+  };
+}
+
 function getStorageKey(baseKey, userKey) {
   return `${baseKey}.${userKey}`;
 }
@@ -46,7 +179,8 @@ function writeStorage(baseKey, userKey, value) {
 
 function createAnalysisFromBackend(opportunity, profile) {
   const analysis = opportunity.analysis;
-  const matchedSkills = profile.skills.filter((skill) =>
+  const profileSkillNames = profile.skills.map((skill) => skill.name).filter(Boolean);
+  const matchedSkills = profileSkillNames.filter((skill) =>
     [...(analysis?.extractedSkills || []), ...(analysis?.detectedTechnologies || [])].some(
       (item) => item.toLowerCase().includes(skill.toLowerCase()) || skill.toLowerCase().includes(item.toLowerCase()),
     ),
@@ -79,26 +213,46 @@ function createAnalysisFromBackend(opportunity, profile) {
 }
 
 function mapBackendProfile(profileDto, authUser, extras) {
+  const localCollections = mapLocalExtrasToProfileCollections(extras);
+
+  if (!profileDto) {
+    return {
+      id: authUser?.sub || "local-profile",
+      fullName:
+        authUser?.name ||
+        [authUser?.given_name, authUser?.family_name].filter(Boolean).join(" ") ||
+        authUser?.preferred_username ||
+        "",
+      email: authUser?.email || "",
+      phone: "",
+      address: "",
+      professionalTitle: "",
+      summary: "",
+      role: "",
+      ...localCollections,
+    };
+  }
+
   return {
-    id: profileDto?.id || authUser?.sub || "local-profile",
+    id: profileDto.id || authUser?.sub || "local-profile",
     fullName:
-      profileDto?.fullName ||
+      profileDto.fullName ||
       authUser?.name ||
       [authUser?.given_name, authUser?.family_name].filter(Boolean).join(" ") ||
       authUser?.preferred_username ||
       "",
-    email: profileDto?.email || authUser?.email || "",
-    phone: profileDto?.phone || "",
-    address: profileDto?.location || "",
-    professionalTitle: profileDto?.title || "",
-    summary: profileDto?.summary || "",
-    role: profileDto?.role || "",
-    education: extras.education || [],
-    experience: extras.experience || [],
-    skills: extras.skills || [],
-    projects: extras.projects || [],
-    languages: extras.languages || [],
-    certifications: extras.certifications || [],
+    email: profileDto.email || authUser?.email || "",
+    phone: profileDto.phone || "",
+    address: profileDto.location || "",
+    professionalTitle: profileDto.title || "",
+    summary: profileDto.summary || "",
+    role: profileDto.role || "",
+    education: (profileDto.educations || []).map(normalizeEducation),
+    experience: (profileDto.experiences || []).map(normalizeExperience),
+    skills: (profileDto.skills || []).map(normalizeSkill),
+    projects: (profileDto.projects || []).map(normalizeProject),
+    languages: (profileDto.languages || []).map(normalizeLanguage),
+    certifications: (profileDto.certifications || []).map(normalizeCertification),
   };
 }
 
@@ -137,9 +291,17 @@ function createLocalCvFromGeneratedResponse(response, offer, profile, existingCo
       summary: response.professionalSummary,
       experience: profile.experience.map((item) => ({
         ...item,
-        bullets: Array.isArray(item.bullets) ? item.bullets.slice(0, 3) : [],
+        role: item.position || item.role || "",
+        period: formatDateRange(item.startDate, item.endDate) || item.period || "",
+        bullets: Array.isArray(item.bullets) && item.bullets.length > 0
+          ? item.bullets.slice(0, 3)
+          : String(item.description || "")
+              .split(/\r?\n/)
+              .map((bullet) => bullet.trim())
+              .filter(Boolean)
+              .slice(0, 3),
       })),
-      skills: [...new Set([...(response.highlightedSkills || []), ...(response.matchingKeywords || []), ...(profile.skills || [])])].slice(0, 12),
+      skills: [...new Set([...(response.highlightedSkills || []), ...(response.matchingKeywords || []), ...profile.skills.map((skill) => skill.name)])].slice(0, 12),
       notes: response.tailoredExperienceHints || [],
       target: {
         role: response.target.jobTitle,
@@ -159,6 +321,74 @@ export function PrototypeAppProvider({ children }) {
   const [cvs, setCvs] = useState([]);
   const [extras, setExtras] = useState(createEmptyExtras());
   const [offerMeta, setOfferMeta] = useState({});
+
+  const persistLocalProfile = (nextProfile) => {
+    const nextExtras = {
+      education: nextProfile.education,
+      experience: nextProfile.experience,
+      skills: nextProfile.skills,
+      projects: nextProfile.projects,
+      languages: nextProfile.languages,
+      certifications: nextProfile.certifications,
+    };
+
+    setExtras(nextExtras);
+    setProfile(nextProfile);
+  };
+
+  const buildBackendProfilePayload = (profileState) => ({
+    title: profileState.professionalTitle,
+    summary: profileState.summary,
+    phone: profileState.phone,
+    location: profileState.address,
+    experiences: profileState.experience.map((item) => ({
+      id: item.id || null,
+      company: item.company,
+      position: item.position,
+      startDate: toUtcIsoDate(item.startDate),
+      endDate: toUtcIsoDate(item.endDate),
+      description: item.description,
+    })),
+    educations: profileState.education.map((item) => ({
+      id: item.id || null,
+      school: item.school,
+      degree: item.degree,
+      field: item.field,
+      startDate: toUtcIsoDate(item.startDate),
+      endDate: toUtcIsoDate(item.endDate),
+    })),
+    projects: profileState.projects.map((item) => ({
+      id: item.id || null,
+      name: item.name,
+      description: item.description,
+      technologies: item.technologies,
+      url: item.url,
+    })),
+    skills: profileState.skills.map((item) => ({
+      id: item.id || null,
+      name: item.name,
+      level: item.level,
+      category: item.category,
+    })),
+    languages: profileState.languages.map((item) => ({
+      id: item.id || null,
+      name: item.name,
+      level: item.level,
+    })),
+    certifications: profileState.certifications.map((item) => ({
+      id: item.id || null,
+      title: item.title,
+      issuer: item.issuer,
+      year: item.year,
+    })),
+  });
+
+  const saveProfileToBackend = async (nextProfile) => {
+    const response = await profileService.updateCurrentProfile(buildBackendProfilePayload(nextProfile));
+    const mappedProfile = mapBackendProfile(response.data, user, createEmptyExtras());
+    setProfile(mappedProfile);
+    return mappedProfile;
+  };
 
   useEffect(() => {
     if (!initialized) {
@@ -268,81 +498,84 @@ export function PrototypeAppProvider({ children }) {
       summary: payload.summary ?? profile.summary,
     };
 
-    setProfile((currentProfile) => ({
-      ...currentProfile,
-      ...nextProfile,
-    }));
-
     if (authEnabled && authenticated) {
-      const response = await profileService.updateCurrentProfile({
-        title: nextProfile.professionalTitle,
-        summary: nextProfile.summary,
-        phone: nextProfile.phone,
-        location: nextProfile.address,
-      });
-
-    setProfile(() => mapBackendProfile(response.data, user, extras));
+      await saveProfileToBackend(nextProfile);
+      return;
     }
+
+    persistLocalProfile(nextProfile);
   };
 
-  const saveCollectionItem = (section, item) => {
-    const currentList = extras[section] ?? [];
-    const resolvedItem = { ...item, id: item.id || crypto.randomUUID() };
+  const saveCollectionItem = async (section, item) => {
+    const currentList = profile[section] ?? [];
+    const resolvedItem = { ...item, id: item.id || "" };
     const exists = currentList.some((entry) => entry.id === resolvedItem.id);
     const nextList = exists
       ? currentList.map((entry) => (entry.id === resolvedItem.id ? resolvedItem : entry))
       : [...currentList, resolvedItem];
+    const nextProfile = {
+      ...profile,
+      [section]: nextList,
+    };
 
-    setExtras((current) => ({
-      ...current,
-      [section]: nextList,
-    }));
-    setProfile((current) => ({
-      ...current,
-      [section]: nextList,
-    }));
+    if (authEnabled && authenticated) {
+      await saveProfileToBackend(nextProfile);
+      return;
+    }
+
+    persistLocalProfile(nextProfile);
   };
 
-  const removeCollectionItem = (section, id) => {
-    const nextList = (extras[section] ?? []).filter((entry) => entry.id !== id);
+  const removeCollectionItem = async (section, id) => {
+    const nextList = (profile[section] ?? []).filter((entry) => entry.id !== id);
+    const nextProfile = {
+      ...profile,
+      [section]: nextList,
+    };
 
-    setExtras((current) => ({
-      ...current,
-      [section]: nextList,
-    }));
-    setProfile((current) => ({
-      ...current,
-      [section]: nextList,
-    }));
+    if (authEnabled && authenticated) {
+      await saveProfileToBackend(nextProfile);
+      return;
+    }
+
+    persistLocalProfile(nextProfile);
   };
 
-  const addSkill = (skill) => {
-    const trimmed = skill.trim();
+  const addSkill = async (skillName) => {
+    const trimmed = skillName.trim();
     if (!trimmed) {
       return;
     }
 
-    const nextSkills = [...new Set([...(extras.skills || []), trimmed])];
-    setExtras((current) => ({
-      ...current,
-      skills: nextSkills,
-    }));
-    setProfile((current) => ({
-      ...current,
-      skills: nextSkills,
-    }));
+    if (profile.skills.some((skill) => skill.name.toLowerCase() === trimmed.toLowerCase())) {
+      return;
+    }
+
+    const nextProfile = {
+      ...profile,
+      skills: [...profile.skills, { id: "", name: trimmed, level: "", category: "" }],
+    };
+
+    if (authEnabled && authenticated) {
+      await saveProfileToBackend(nextProfile);
+      return;
+    }
+
+    persistLocalProfile(nextProfile);
   };
 
-  const removeSkill = (skill) => {
-    const nextSkills = (extras.skills || []).filter((entry) => entry !== skill);
-    setExtras((current) => ({
-      ...current,
-      skills: nextSkills,
-    }));
-    setProfile((current) => ({
-      ...current,
-      skills: nextSkills,
-    }));
+  const removeSkill = async (skillName) => {
+    const nextProfile = {
+      ...profile,
+      skills: profile.skills.filter((entry) => entry.name !== skillName),
+    };
+
+    if (authEnabled && authenticated) {
+      await saveProfileToBackend(nextProfile);
+      return;
+    }
+
+    persistLocalProfile(nextProfile);
   };
 
   const createAnalyzedOffer = async (payload) => {

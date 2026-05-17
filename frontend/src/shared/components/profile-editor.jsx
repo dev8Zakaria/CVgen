@@ -18,7 +18,7 @@ export function CollectionEditorCard({ title, description, fields, items, onSave
 
   useEffect(() => {
     setForm(getInitialForm(fields, draft));
-  }, [draft, fields]);
+  }, [draft]);
 
   const startCreate = () => {
     setDraft({ id: "" });
@@ -28,10 +28,14 @@ export function CollectionEditorCard({ title, description, fields, items, onSave
     setDraft(item);
   };
 
-  const handleSave = (event) => {
+  const handleSave = async (event) => {
     event.preventDefault();
-    onSave({ ...draft, ...form, id: draft?.id });
-    setDraft(null);
+    try {
+      await onSave({ ...draft, ...form, id: draft?.id });
+      setDraft(null);
+    } catch {
+      return;
+    }
   };
 
   return (
@@ -88,6 +92,7 @@ export function CollectionEditorCard({ title, description, fields, items, onSave
               ) : (
                 <input
                   className="field"
+                  type={field.type || "text"}
                   value={form[field.name]}
                   onChange={(event) => setForm((current) => ({ ...current, [field.name]: event.target.value }))}
                 />
@@ -110,9 +115,13 @@ export function CollectionEditorCard({ title, description, fields, items, onSave
         confirmLabel="Delete"
         tone="danger"
         onCancel={() => setPendingDelete(null)}
-        onConfirm={() => {
-          onDelete(pendingDelete.id);
-          setPendingDelete(null);
+        onConfirm={async () => {
+          try {
+            await onDelete(pendingDelete.id);
+            setPendingDelete(null);
+          } catch {
+            return;
+          }
         }}
       />
     </div>
