@@ -97,9 +97,9 @@ public class ProfileService
                 e.ProfileId=profile.Id;
                 e.Company=d.Company;
                 e.Description=d.Description;
-                e.EndDate=d.EndDate;
+                e.EndDate=d.EndDate?.ToUniversalTime();
                 e.Position=d.Position;
-                e.StartDate=d.StartDate;
+                e.StartDate=d.StartDate.ToUniversalTime();
                 profile.Experiences.Add(e);
             }
             else
@@ -115,15 +115,15 @@ public class ProfileService
                     // Si elle existe, on modifie les champs
                     existingExperience.Company = d.Company;
                     existingExperience.Description = d.Description;
-                    existingExperience.EndDate = d.EndDate;
+                    existingExperience.EndDate = d.EndDate?.ToUniversalTime();
                     existingExperience.Position = d.Position;
-                    existingExperience.StartDate = d.StartDate;
+                    existingExperience.StartDate = d.StartDate.ToUniversalTime();
 
                     // Note : Avec Entity Framework, modifier les propriétés d'un objet tracké 
                     // suffit. Pas besoin d'appeler _repository.Update().
                 }
             }
-            await _repository.SaveChangesAsync();
+            
     }
 
     private async Task SyncEducations(Profile profile, List<EducationUpdateDto> dtos)
@@ -145,8 +145,8 @@ public class ProfileService
                 e.School = d.School;
                 e.Degree = d.Degree;
                 e.Field = d.Field;
-                e.StartDate = d.StartDate;
-                e.EndDate = d.EndDate;
+                e.StartDate = d.StartDate.ToUniversalTime();
+                e.EndDate = d.EndDate?.ToUniversalTime();
                 profile.Educations.Add(e);
             }
             else
@@ -161,11 +161,11 @@ public class ProfileService
                 existingEducation.School = d.School;
                 existingEducation.Degree = d.Degree;
                 existingEducation.Field = d.Field;
-                existingEducation.StartDate = d.StartDate;
-                existingEducation.EndDate = d.EndDate;
+                existingEducation.StartDate = d.StartDate.ToUniversalTime();
+                existingEducation.EndDate = d.EndDate?.ToUniversalTime();
             }
         }
-        await _repository.SaveChangesAsync();
+        
         
     }
 
@@ -206,7 +206,7 @@ public class ProfileService
                 existingProject.Url = d.Url;
             }
         }
-        await _repository.SaveChangesAsync();
+        
         
     }
 
@@ -246,7 +246,7 @@ public class ProfileService
                 existingSkill.Category = d.Category;
             }
         }
-        await _repository.SaveChangesAsync();
+        
     }
 
     private async Task SyncLanguages(Profile profile, List<LanguageUpdateDto> dtos)
@@ -283,7 +283,7 @@ public class ProfileService
                 existingLanguage.Level = d.Level;
             }
         }
-        await _repository.SaveChangesAsync();
+        
         
     }
 
@@ -323,7 +323,7 @@ public class ProfileService
                 existingCertification.Year = d.Year;
             }
         }
-        await _repository.SaveChangesAsync();
+        
     }
     // 3. DELETE
     public async Task<bool> DeleteProfileAsync(string keycloakId)
