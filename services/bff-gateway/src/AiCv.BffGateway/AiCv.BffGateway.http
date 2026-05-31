@@ -1,0 +1,9 @@
+@AiCv_BffGateway_HostAddress = http://localhost:5100
+
+GET {{AiCv_BffGateway_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{AiCv_BffGateway_HostAddress}}/info
+Accept: application/json

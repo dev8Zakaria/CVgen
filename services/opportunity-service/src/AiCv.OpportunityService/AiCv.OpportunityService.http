@@ -1,0 +1,9 @@
+@AiCv_OpportunityService_HostAddress = http://localhost:5102
+
+GET {{AiCv_OpportunityService_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{AiCv_OpportunityService_HostAddress}}/info
+Accept: application/json

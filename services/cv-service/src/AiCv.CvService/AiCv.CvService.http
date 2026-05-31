@@ -1,0 +1,9 @@
+@AiCv_CvService_HostAddress = http://localhost:5103
+
+GET {{AiCv_CvService_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{AiCv_CvService_HostAddress}}/info
+Accept: application/json

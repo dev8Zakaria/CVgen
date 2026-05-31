@@ -1,0 +1,99 @@
+services:
+  bff-gateway:
+    build:
+      context: ./services/bff-gateway
+      dockerfile: Dockerfile
+    container_name: aicv-bff-gateway
+    ports:
+      - "${BFF_GATEWAY_PORT:-5100}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      Keycloak__Authority: ${KEYCLOAK_AUTHORITY:-http://keycloak:8080/realms/ai-cv-generator}
+      Keycloak__Audience: ${KEYCLOAK_AUDIENCE:-frontend-client}
+      DownstreamServices__Profile: http://profile-service:8080
+      DownstreamServices__Opportunity: http://opportunity-service:8080
+      DownstreamServices__Cv: http://cv-service:8080
+      DownstreamServices__Ai: ${AI_SERVICE_BASE_URL:-http://ai-service:8000}
+    depends_on:
+      - profile-service
+      - opportunity-service
+      - cv-service
+      - keycloak
+    networks:
+      - aicv-network
+
+  profile-service:
+    build:
+      context: ./services/profile-service
+      dockerfile: Dockerfile
+    container_name: aicv-profile-service
+    ports:
+      - "${PROFILE_SERVICE_PORT:-5101}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${PROFILE_DB:-aicv_profile};Username=${POSTGRES_USER:-aicv_user};Password=${POSTGRES_PASSWORD:-aicv_password}
+      Keycloak__Authority: ${KEYCLOAK_AUTHORITY:-http://keycloak:8080/realms/ai-cv-generator}
+      Keycloak__Audience: ${KEYCLOAK_AUDIENCE:-frontend-client}
+    depends_on:
+      - postgres
+      - keycloak
+    networks:
+      - aicv-network
+
+  opportunity-service:
+    build:
+      context: ./services/opportunity-service
+      dockerfile: Dockerfile
+    container_name: aicv-opportunity-service
+    ports:
+      - "${OPPORTUNITY_SERVICE_PORT:-5102}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${OPPORTUNITY_DB:-aicv_opportunity};Username=${POSTGRES_USER:-aicv_user};Password=${POSTGRES_PASSWORD:-aicv_password}
+      Keycloak__Authority: ${KEYCLOAK_AUTHORITY:-http://keycloak:8080/realms/ai-cv-generator}
+      Keycloak__Audience: ${KEYCLOAK_AUDIENCE:-frontend-client}
+      AiService__BaseUrl: ${AI_SERVICE_BASE_URL:-http://ai-service:8000}
+      RabbitMq__Host: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMq__Port: ${RABBITMQ_PORT:-5672}
+      RabbitMq__Enabled: ${RABBITMQ_ENABLED:-false}
+    depends_on:
+      - postgres
+      - keycloak
+      - ai-service
+    networks:
+      - aicv-network
+
+  cv-service:
+    build:
+      context: ./services/cv-service
+      dockerfile: Dockerfile
+    container_name: aicv-cv-service
+    ports:
+      - "${CV_SERVICE_PORT:-5103}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${CV_DB:-aicv_cv};Username=${POSTGRES_USER:-aicv_user};Password=${POSTGRES_PASSWORD:-aicv_password}
+      Keycloak__Authority: ${KEYCLOAK_AUTHORITY:-http://keycloak:8080/realms/ai-cv-generator}
+      Keycloak__Audience: ${KEYCLOAK_AUDIENCE:-frontend-client}
+      DownstreamServices__Profile: http://profile-service:8080
+      DownstreamServices__Opportunity: http://opportunity-service:8080
+      DownstreamServices__Ai: ${AI_SERVICE_BASE_URL:-http://ai-service:8000}
+      Minio__Endpoint: ${MINIO_ENDPOINT:-minio:9000}
+      Minio__AccessKey: ${MINIO_ACCESS_KEY:-minioadmin}
+      Minio__SecretKey: ${MINIO_SECRET_KEY:-minioadmin}
+      RabbitMq__Host: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMq__Port: ${RABBITMQ_PORT:-5672}
+      RabbitMq__Enabled: ${RABBITMQ_ENABLED:-false}
+    depends_on:
+      - postgres
+      - keycloak
+      - minio
+      - ai-service
+      - profile-service
+      - opportunity-service
+    networks:
+      - aicv-network

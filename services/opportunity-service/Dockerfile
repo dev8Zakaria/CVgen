@@ -1,0 +1,15 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY src/AiCv.OpportunityService/AiCv.OpportunityService.csproj src/AiCv.OpportunityService/
+RUN dotnet restore src/AiCv.OpportunityService/AiCv.OpportunityService.csproj
+
+COPY src/AiCv.OpportunityService/ src/AiCv.OpportunityService/
+RUN dotnet publish src/AiCv.OpportunityService/AiCv.OpportunityService.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "AiCv.OpportunityService.dll"]

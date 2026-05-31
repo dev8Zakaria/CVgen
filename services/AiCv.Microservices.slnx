@@ -1,0 +1,30 @@
+<Solution>
+  <Folder Name="/bff-gateway/" />
+  <Folder Name="/bff-gateway/src/">
+    <Project Path="bff-gateway/src/AiCv.BffGateway/AiCv.BffGateway.csproj" />
+  </Folder>
+  <Folder Name="/bff-gateway/tests/">
+    <Project Path="bff-gateway/tests/AiCv.BffGateway.Tests/AiCv.BffGateway.Tests.csproj" />
+  </Folder>
+  <Folder Name="/cv-service/" />
+  <Folder Name="/cv-service/src/">
+    <Project Path="cv-service/src/AiCv.CvService/AiCv.CvService.csproj" />
+  </Folder>
+  <Folder Name="/cv-service/tests/">
+    <Project Path="cv-service/tests/AiCv.CvService.Tests/AiCv.CvService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/opportunity-service/" />
+  <Folder Name="/opportunity-service/src/">
+    <Project Path="opportunity-service/src/AiCv.OpportunityService/AiCv.OpportunityService.csproj" />
+  </Folder>
+  <Folder Name="/opportunity-service/tests/">
+    <Project Path="opportunity-service/tests/AiCv.OpportunityService.Tests/AiCv.OpportunityService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/profile-service/" />
+  <Folder Name="/profile-service/src/">
+    <Project Path="profile-service/src/AiCv.ProfileService/AiCv.ProfileService.csproj" />
+  </Folder>
+  <Folder Name="/profile-service/tests/">
+    <Project Path="profile-service/tests/AiCv.ProfileService.Tests/AiCv.ProfileService.Tests.csproj" />
+  </Folder>
+</Solution>
