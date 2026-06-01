@@ -1,0 +1,45 @@
+name: CI - BFF Gateway
+
+on:
+  push:
+    branches: [ "main", "develop","dev-assaad" ]
+    # LA LIGNE MAGIQUE : La CI ne se lance que si on touche au BFF
+    paths:
+      - 'services/bff-gateway/**'
+      - '.github/workflows/ci-bff-gateway.yml'
+  pull_request:
+    branches: [ "main", "develop" ]
+    paths:
+      - 'services/bff-gateway/**'
+
+jobs:
+  build-and-test:
+    name: Build & Test BFF
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: ⚙️ Setup .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: 📦 Restore dependencies
+      working-directory: ./services/bff-gateway/src/AiCv.BffGateway
+      run: dotnet restore
+
+    - name: 🛠️ Build project
+      working-directory: ./services/bff-gateway/src/AiCv.BffGateway
+      run: dotnet build --no-restore --configuration Release
+
+    # À décommenter quand vous aurez ajouté des tests unitaires (xUnit/NUnit)
+    # - name: 🧪 Run Tests
+    #   working-directory: ./services/bff-gateway/tests/AiCv.BffGateway.Tests
+    #   run: dotnet test --no-build --configuration Release --verbosity normal
+
+    - name: 🐳 Docker Build Check
+      # On vérifie que le Dockerfile est valide et que l'image compile
+      working-directory: ./services/bff-gateway
+      run: docker build -f Dockerfile -t aicv-bff-gateway:test .
