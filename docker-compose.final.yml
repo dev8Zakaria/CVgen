@@ -1,0 +1,166 @@
+services:
+  # ==========================================
+  # 1. FRONTEND
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aicv-frontend
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_AUTH_ENABLED: ${VITE_AUTH_ENABLED:-true}
+      # CRITIQUE : Le frontend attaque maintenant le BFF !
+      VITE_API_BASE_URL: http://localhost:5100/api
+      VITE_KEYCLOAK_URL: http://localhost:${KEYCLOAK_PORT:-8080}
+      VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-ai-cv-generator}
+      VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID:-frontend-client}
+    depends_on:
+      - bff-gateway
+    networks:
+      - aicv-network
+
+  # ==========================================
+  # 2. BFF GATEWAY (Le point d'entrée Backend)
+  # ==========================================
+  bff-gateway:
+    build:
+      context: ./services/bff-gateway
+      dockerfile: Dockerfile
+    container_name: aicv-bff-gateway
+    ports:
+      - "${BFF_GATEWAY_PORT:-5100}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      Keycloak__Authority: http://keycloak:8080/realms/ai-cv-generator
+      DownstreamServices__Profile: http://profile-service:8080
+      DownstreamServices__Opportunity: http://opportunity-service:8080
+      DownstreamServices__Cv: http://cv-service:8080
+      DownstreamServices__Ai: http://ai-service:8000
+    depends_on:
+      - profile-service
+      - opportunity-service
+      - cv-service
+      - keycloak
+    networks:
+      - aicv-network
+
+  # ==========================================
+  # 3. MICROSERVICES MÉTIERS (Cachés du web)
+  # ==========================================
+  profile-service:
+    build:
+      context: ./services/profile-service
+      dockerfile: Dockerfile
+    container_name: aicv-profile-service
+    # Ports supprimés : on force le passage par le BFF
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${PROFILE_DB:-aicv_profile};Username=${POSTGRES_USER:-aicv_user};Password=${POSTGRES_PASSWORD:-aicv_password}
+      Keycloak__Authority: http://keycloak:8080/realms/ai-cv-generator
+    depends_on:
+      - postgres
+    networks:
+      - aicv-network
+
+  opportunity-service:
+    build:
+      context: ./services/opportunity-service
+      dockerfile: Dockerfile
+    container_name: aicv-opportunity-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${OPPORTUNITY_DB:-aicv_opportunity};Username=${POSTGRES_USER:-aicv_user};Password=${POSTGRES_PASSWORD:-aicv_password}
+      Keycloak__Authority: http://keycloak:8080/realms/ai-cv-generator
+      AiService__BaseUrl: http://ai-service:8000
+    depends_on:
+      - postgres
+      - ai-service
+    networks:
+      - aicv-network
+
+  cv-service:
+    build:
+      context: ./services/cv-service
+      dockerfile: Dockerfile
+    container_name: aicv-cv-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${CV_DB:-aicv_cv};Username=${POSTGRES_USER:-aicv_user};Password=${POSTGRES_PASSWORD:-aicv_password}
+      Keycloak__Authority: http://keycloak:8080/realms/ai-cv-generator
+      Minio__Endpoint: minio:9000
+      Minio__AccessKey: ${MINIO_USER:-minioadmin}
+      Minio__SecretKey: ${MINIO_PASSWORD:-minioadmin}
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - aicv-network
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: aicv-ai-service
+    environment:
+      - ENVIRONMENT=Development
+      - AI_PROVIDER=${AI_PROVIDER:-gemini}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    networks:
+      - aicv-network
+
+  # ==========================================
+  # 4. SERVICES DE PLATEFORME
+  # ==========================================
+  postgres:
+    image: postgres:16
+    container_name: aicv-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aicv_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aicv_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - aicv-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: aicv-keycloak
+    command: ["start-dev", "--import-realm"]
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ./infra/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    networks:
+      - aicv-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: aicv-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - aicv-network
+
+networks:
+  aicv-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  keycloak_data:
+  minio_data:
