@@ -1,4 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using AiCv.CvService.Data;
+using AiCv.CvService.Modules.Cvs.Clients;
+using AiCv.CvService.Modules.Cvs.Repositories;
+using AiCv.CvService.Modules.Cvs.Services;
+using AiCv.CvService.Modules.Cvs.Storage;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
@@ -8,7 +14,12 @@ const string corsPolicy = "ConfiguredCors";
 
 var builder = WebApplication.CreateBuilder(args);
 var jwtAuthority = builder.Configuration["Keycloak:Authority"];
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var profileBaseUrl = builder.Configuration["DownstreamServices:Profile"] ?? "http://localhost:5101";
+var opportunityBaseUrl = builder.Configuration["DownstreamServices:Opportunity"] ?? "http://localhost:5102";
+var aiBaseUrl = builder.Configuration["DownstreamServices:Ai"] ?? "http://localhost:8000";
 
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -40,6 +51,27 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddDbContext<CvDbContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+});
+
+builder.Services.AddScoped<CvRepository>();
+builder.Services.AddScoped<CvGenerationService>();
+builder.Services.AddHttpClient<ICvObjectStorage, CvObjectStorage>();
+builder.Services.AddHttpClient<IProfileClient, ProfileClient>(client =>
+{
+    client.BaseAddress = new Uri(profileBaseUrl);
+});
+builder.Services.AddHttpClient<IOpportunityClient, OpportunityClient>(client =>
+{
+    client.BaseAddress = new Uri(opportunityBaseUrl);
+});
+builder.Services.AddHttpClient<IAiCvGenerationClient, AiCvGenerationClient>(client =>
+{
+    client.BaseAddress = new Uri(aiBaseUrl);
+});
+
 if (!string.IsNullOrWhiteSpace(jwtAuthority))
 {
     builder.Services
@@ -51,12 +83,19 @@ if (!string.IsNullOrWhiteSpace(jwtAuthority))
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateAudience = false,
-                ValidateIssuer = true
+                ValidateIssuer = !builder.Environment.IsDevelopment()
             };
         });
 }
 
 var app = builder.Build();
+
+if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<CvDbContext>();
+    dbContext.Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -72,6 +111,8 @@ if (!string.IsNullOrWhiteSpace(jwtAuthority))
 }
 
 app.UseAuthorization();
+
+app.MapControllers();
 
 app.MapGet("/health", () => Results.Ok(new
 {

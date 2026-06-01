@@ -108,7 +108,7 @@ class GeminiJobAnalysisProvider:
     @staticmethod
     def _build_prompt(job_description: str) -> str:
         return f"""
-You are a precise job analysis agent for an AI CV generator.
+You are a senior technical recruiter analyzing a software engineering job description for CV tailoring.
 
 Analyze the provided job description and return only structured JSON that matches the requested schema.
 
@@ -118,14 +118,20 @@ Rules:
   - "unknown" for detected experience level or contract type.
   - "Unknown" for detected location.
   - [] for missing lists.
-- Keep list items concise and specific.
-- Put only truly mandatory items in must_have_requirements.
-- Put optional or beneficial items in nice_to_have_requirements.
-- cv_focus_points should be concrete advice for tailoring a CV to this role.
-- candidate_risks should mention realistic fit risks implied by the posting.
+- Keep list items concise, specific, and useful for ATS matching.
+- Separate hard requirements from soft signals.
+- Put only truly mandatory or strongly implied screening criteria in must_have_requirements.
+- Put optional, differentiating, or nice-to-have criteria in nice_to_have_requirements.
+- extracted_keywords should include ATS/search terms a recruiter or ATS would likely use.
+- detected_technologies should include concrete tools, languages, frameworks, platforms, and infrastructure keywords.
+- extracted_responsibilities should describe what the hired person will actually do, not generic corporate wording.
+- cv_focus_points should be concrete recruiter guidance for the CV generator. Focus on evidence to surface, not vague advice.
+- candidate_risks should mention realistic fit risks implied by the posting, such as missing production experience, cloud depth, async messaging, ownership, or seniority expectations.
 - reasoning_summary must be one short sentence.
 - detected_experience_level must be one of: intern, junior, mid, mid-senior, senior, lead, unknown.
 - detected_contract_type must be one of: full-time, part-time, internship, freelance, contract, unknown.
+- Do not overfit. If a technology is only mentioned as optional, do not treat it as mandatory.
+- Do not hallucinate salary, degree requirements, years of experience, or location if not present.
 
 Job description:
 {job_description.strip()}

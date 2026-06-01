@@ -1,4 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using AiCv.ProfileService.Data;
+using AiCv.ProfileService.Modules.Profiles.Repositories;
+using AiCv.ProfileService.Modules.Profiles.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
@@ -8,7 +12,9 @@ const string corsPolicy = "ConfiguredCors";
 
 var builder = WebApplication.CreateBuilder(args);
 var jwtAuthority = builder.Configuration["Keycloak:Authority"];
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -40,6 +46,14 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddDbContext<ProfileDbContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+});
+
+builder.Services.AddScoped<ProfileRepository>();
+builder.Services.AddScoped<ProfileService>();
+
 if (!string.IsNullOrWhiteSpace(jwtAuthority))
 {
     builder.Services
@@ -51,12 +65,19 @@ if (!string.IsNullOrWhiteSpace(jwtAuthority))
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateAudience = false,
-                ValidateIssuer = true
+                ValidateIssuer = !builder.Environment.IsDevelopment()
             };
         });
 }
 
 var app = builder.Build();
+
+if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ProfileDbContext>();
+    dbContext.Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -72,6 +93,8 @@ if (!string.IsNullOrWhiteSpace(jwtAuthority))
 }
 
 app.UseAuthorization();
+
+app.MapControllers();
 
 app.MapGet("/health", () => Results.Ok(new
 {

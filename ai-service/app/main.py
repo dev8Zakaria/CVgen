@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.core.config import settings
-from app.api.routes import health, analyze_job
+from app.api.routes import health, analyze_job, generate_cv
 
 # C'EST CETTE VARIABLE QUE DOCKER CHERCHE :
 app = FastAPI(
@@ -11,3 +11,4 @@ app = FastAPI(
 # Enregistrement des routes
 app.include_router(health.router, tags=["Health"])
 app.include_router(analyze_job.router, tags=["Job Analysis"])
+app.include_router(generate_cv.router, tags=["CV Generation"])

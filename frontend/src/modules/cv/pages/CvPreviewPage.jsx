@@ -1,20 +1,66 @@
 import { Download, Save, WandSparkles } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
-import { EmptyState, SectionHeading, StatusPill } from "@/shared/components/app-ui";
+import { EmptyState, SectionHeading, SkeletonBlock } from "@/shared/components/app-ui";
 import { usePrototypeApp } from "@/shared/providers/PrototypeAppProvider";
 import { useToast } from "@/shared/providers/ToastProvider";
 
 const templates = ["Atelier Ivory", "Monograph Slate"];
 
+function hasItems(items) {
+  return Array.isArray(items) && items.length > 0;
+}
+
+function renderSimpleItems(items) {
+  return items
+    .filter((item) => item.name)
+    .map((item) => (item.detail ? `${item.name} (${item.detail})` : item.name))
+    .join(", ");
+}
+
 export function CvPreviewPage() {
   const { cvId } = useParams();
-  const { cvs, updateCv } = usePrototypeApp();
+  const { hydrated, cvs, updateCv, loadCv, downloadCv } = usePrototypeApp();
   const toast = useToast();
   const cv = useMemo(() => cvs.find((entry) => entry.id === cvId), [cvs, cvId]);
   const [draft, setDraft] = useState(cv);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!cvId || cv?.content) {
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
+    loadCv(cvId)
+      .then((loadedCv) => {
+        if (!cancelled && loadedCv) {
+          setDraft(loadedCv);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          toast.error("CV loading failed", "The backend could not load the selected CV.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cv?.content, cvId, loadCv, toast]);
+
+  if (!hydrated) {
+    return <SkeletonBlock className="h-96" />;
+  }
 
   if (!cv) {
     return <EmptyState title="CV not found" description="The selected CV preview could not be loaded." />;
@@ -22,46 +68,34 @@ export function CvPreviewPage() {
 
   const activeDraft = draft ?? cv;
 
-  const downloadPreview = () => {
-    const popup = window.open("", "_blank");
-    if (!popup) {
-      toast.error("Download blocked", "Please allow popups to use the print-to-PDF preview flow.");
-      return;
-    }
+  if (loading || !activeDraft.content) {
+    return <SkeletonBlock className="h-96" />;
+  }
 
-    popup.document.write(`
-      <html>
-        <head><title>${activeDraft.jobTitle}</title></head>
-        <body style="font-family: Georgia, serif; padding: 48px; line-height: 1.6; max-width: 820px; margin: 0 auto;">
-          <h1>${activeDraft.content.header.name}</h1>
-          <p>${activeDraft.content.header.title}</p>
-          <p>${activeDraft.content.header.email} · ${activeDraft.content.header.phone} · ${activeDraft.content.header.address}</p>
-          <h2>Summary</h2>
-          <p>${activeDraft.content.summary}</p>
-        </body>
-      </html>
-    `);
-    popup.document.close();
-    popup.focus();
-    popup.print();
+  const downloadPreview = async () => {
+    try {
+      await downloadCv(activeDraft.id);
+    } catch {
+      toast.error("Download failed", "The backend could not download this CV.");
+    }
   };
 
   const saveCv = () => {
     updateCv(activeDraft.id, activeDraft);
-    toast.success("CV saved", "Your preview edits are now stored in the prototype.");
+    toast.success("CV saved", "Your preview edits are now stored in the current frontend session.");
   };
 
   return (
     <div className="space-y-6">
       <SectionHeading
         eyebrow="CV Preview"
-        title={`${activeDraft.jobTitle} · ${activeDraft.companyName}`}
-        description="Edit the content inline, switch templates, then print to PDF or save the latest version."
+        title={`${activeDraft.jobTitle} - ${activeDraft.companyName}`}
+        description="Edit the content inline, switch templates, then download the backend-generated file or save the latest preview state."
         action={
           <>
             <Button type="button" variant="outline" onClick={downloadPreview}>
               <Download className="mr-2 h-4 w-4" />
-              Download PDF
+              Download
             </Button>
             <Button type="button" onClick={saveCv}>
               <Save className="mr-2 h-4 w-4" />
@@ -71,32 +105,78 @@ export function CvPreviewPage() {
         }
       />
 
-      <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className={`paper-panel p-8 ${activeDraft.template === "Monograph Slate" ? "bg-foreground text-background dark:border-white/0" : ""}`}>
-          <div className="border-b border-border/70 pb-6">
-            <h2 className="font-display text-5xl tracking-[-0.06em]">{activeDraft.content.header.name}</h2>
-            <p className="mt-2 text-lg">{activeDraft.content.header.title}</p>
-            <p className="mt-3 text-sm opacity-80">
-              {activeDraft.content.header.email} · {activeDraft.content.header.phone} · {activeDraft.content.header.address}
+      <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="paper-panel bg-white p-8 text-black">
+          <div className="grid gap-4 border-b border-black pb-4 md:grid-cols-[1.4fr_1fr]">
+            <div>
+              <h2 className="font-serif text-4xl font-bold leading-none">{activeDraft.content.header.name}</h2>
+              <p className="mt-2 font-serif text-base font-bold">{activeDraft.content.header.title}</p>
+              <p className="mt-1 font-serif text-sm italic text-neutral-700">
+                Target role: {activeDraft.jobTitle} at {activeDraft.companyName}
+              </p>
+            </div>
+            <p className="whitespace-pre-line text-left font-serif text-sm leading-6 text-neutral-800 md:text-right">
+              {[activeDraft.content.header.phone, activeDraft.content.header.email, activeDraft.content.header.address]
+                .filter(Boolean)
+                .join("\n")}
             </p>
           </div>
 
-          <div className="mt-8 space-y-8">
+          <div className="mt-5 space-y-5 font-serif text-[0.95rem] leading-6">
             <section>
-              <p className="font-mono text-[0.68rem] uppercase tracking-[0.3em] opacity-60">Professional Summary</p>
-              <p className="mt-3 text-sm leading-7">{activeDraft.content.summary}</p>
+              <h3 className="border-b border-black font-serif text-lg font-bold uppercase tracking-wide">Professional Summary</h3>
+              <p className="mt-2 text-justify">{activeDraft.content.summary}</p>
             </section>
 
+            {hasItems(activeDraft.content.education) ? (
+              <section>
+                <h3 className="border-b border-black font-serif text-lg font-bold uppercase tracking-wide">Education</h3>
+                <div className="mt-2 space-y-3">
+                  {activeDraft.content.education.map((item) => (
+                    <div key={`${item.degree}-${item.school}`}>
+                      <p className="font-bold">{[item.degree, item.field].filter(Boolean).join(" in ")}</p>
+                      <p className="italic text-neutral-700">{item.school}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {hasItems(activeDraft.content.projects) ? (
+              <section>
+                <h3 className="border-b border-black font-serif text-lg font-bold uppercase tracking-wide">Projects</h3>
+                <div className="mt-2 space-y-4">
+                  {activeDraft.content.projects.map((project) => (
+                    <div key={project.name}>
+                      <p className="font-bold">{project.name}</p>
+                      <p className="italic text-neutral-700">{project.description}</p>
+                      {hasItems(project.bullets) ? (
+                        <ul className="ml-5 mt-1 list-['-_'] space-y-1">
+                          {project.bullets.map((bullet) => (
+                            <li key={bullet} className="pl-1">{bullet}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {project.technologies ? <p className="mt-1"><span className="font-bold">Technologies:</span> {project.technologies}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             <section>
-              <p className="font-mono text-[0.68rem] uppercase tracking-[0.3em] opacity-60">Experience</p>
-              <div className="mt-4 space-y-5">
+              <h3 className="border-b border-black font-serif text-lg font-bold uppercase tracking-wide">Experience</h3>
+              <div className="mt-2 space-y-4">
                 {activeDraft.content.experience.map((item) => (
                   <div key={item.id}>
-                    <p className="font-semibold">{item.role} · {item.company}</p>
-                    <p className="text-sm opacity-70">{item.period} · {item.location}</p>
-                    <ul className="mt-3 space-y-2 text-sm leading-7">
+                    <div className="flex gap-4">
+                      <p className="flex-1 font-bold">{item.role} - {item.company}</p>
+                      <p className="shrink-0 italic text-neutral-700">{item.period}</p>
+                    </div>
+                    {item.location ? <p className="italic text-neutral-700">{item.location}</p> : null}
+                    <ul className="ml-5 mt-1 list-['-_'] space-y-1">
                       {item.bullets.map((bullet) => (
-                        <li key={bullet}>• {bullet}</li>
+                        <li key={bullet} className="pl-1">{bullet}</li>
                       ))}
                     </ul>
                   </div>
@@ -105,15 +185,31 @@ export function CvPreviewPage() {
             </section>
 
             <section>
-              <p className="font-mono text-[0.68rem] uppercase tracking-[0.3em] opacity-60">Skills</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {activeDraft.content.skills.map((skill) => (
-                  <StatusPill key={skill} tone={activeDraft.template === "Monograph Slate" ? "accent" : "primary"}>
-                    {skill}
-                  </StatusPill>
-                ))}
+              <h3 className="border-b border-black font-serif text-lg font-bold uppercase tracking-wide">Technical Skills</h3>
+              <div className="mt-2 space-y-1">
+                {hasItems(activeDraft.content.skillGroups) ? (
+                  activeDraft.content.skillGroups.map((group) => (
+                    <p key={group.label}><span className="font-bold">{group.label}:</span> {group.items.join(", ")}</p>
+                  ))
+                ) : (
+                  <p><span className="font-bold">Core Skills:</span> {activeDraft.content.skills.join(", ")}</p>
+                )}
               </div>
             </section>
+
+            {hasItems(activeDraft.content.certifications) ? (
+              <section>
+                <h3 className="border-b border-black font-serif text-lg font-bold uppercase tracking-wide">Certifications</h3>
+                <p className="mt-2">{renderSimpleItems(activeDraft.content.certifications)}</p>
+              </section>
+            ) : null}
+
+            {hasItems(activeDraft.content.languages) ? (
+              <section>
+                <h3 className="border-b border-black font-serif text-lg font-bold uppercase tracking-wide">Languages</h3>
+                <p className="mt-2">{renderSimpleItems(activeDraft.content.languages)}</p>
+              </section>
+            ) : null}
           </div>
         </div>
 

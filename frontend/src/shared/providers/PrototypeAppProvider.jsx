@@ -268,44 +268,70 @@ function mapBackendOpportunity(opportunity, meta, profile) {
   };
 }
 
-function createLocalCvFromGeneratedResponse(response, offer, profile, existingCount) {
+function mapBackendCvListItem(item) {
   return {
-    id: crypto.randomUUID(),
-    targetOfferId: offer.id,
-    jobTitle: response.target.jobTitle,
-    companyName: response.target.companyName,
-    createdAt: response.generatedAt,
-    template: existingCount % 2 === 0 ? "Atelier Ivory" : "Monograph Slate",
-    status: "Saved",
-    content: {
+    id: item.id,
+    targetOfferId: item.opportunityId,
+    jobTitle: item.jobTitle,
+    companyName: item.companyName,
+    createdAt: item.createdAt,
+    template: item.template || "Atelier Ivory",
+    status: item.status || "Saved",
+    content: null,
+    backendBacked: true,
+  };
+}
+
+function mapBackendCvDetails(response, fallback = {}) {
+  return {
+    id: response.id || response.cvId,
+    targetOfferId: response.target?.opportunityId || fallback.targetOfferId || "",
+    jobTitle: response.target?.jobTitle || fallback.jobTitle || "",
+    companyName: response.target?.companyName || fallback.companyName || "",
+    createdAt: response.generatedAt || fallback.createdAt || new Date().toISOString(),
+    template: fallback.template || "Atelier Ivory",
+    status: fallback.status || "Saved",
+    content: response.content || {
       header: {
-        name: response.profile.fullName,
-        title: response.profile.headline,
-        email: response.profile.email,
-        phone: response.profile.phone,
-        address: response.profile.location,
+        name: response.profile?.fullName || "",
+        title: response.profile?.headline || "",
+        email: response.profile?.email || "",
+        phone: response.profile?.phone || "",
+        address: response.profile?.location || "",
       },
-      summary: response.professionalSummary,
-      experience: profile.experience.map((item) => ({
-        ...item,
-        role: item.position || item.role || "",
-        period: formatDateRange(item.startDate, item.endDate) || item.period || "",
-        bullets: Array.isArray(item.bullets) && item.bullets.length > 0
-          ? item.bullets.slice(0, 3)
-          : String(item.description || "")
-              .split(/\r?\n/)
-              .map((bullet) => bullet.trim())
-              .filter(Boolean)
-              .slice(0, 3),
-      })),
-      skills: [...new Set([...(response.highlightedSkills || []), ...(response.matchingKeywords || []), ...profile.skills.map((skill) => skill.name)])].slice(0, 12),
+      summary: response.professionalSummary || "",
+      experience: [],
+      skills: response.highlightedSkills || [],
       notes: response.tailoredExperienceHints || [],
       target: {
-        role: response.target.jobTitle,
-        company: response.target.companyName,
+        role: response.target?.jobTitle || "",
+        company: response.target?.companyName || "",
       },
     },
+    backendBacked: true,
   };
+}
+
+function saveBlob(blob, filename) {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+function getDownloadFileName(response, fallbackName) {
+  const disposition = response.headers?.["content-disposition"];
+  const match = disposition?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+
+  if (!match?.[1]) {
+    return fallbackName;
+  }
+
+  return decodeURIComponent(match[1]);
 }
 
 export function PrototypeAppProvider({ children }) {
@@ -433,11 +459,19 @@ export function PrototypeAppProvider({ children }) {
         );
 
         const mappedOffers = detailedOffers.map((offer) => mapBackendOpportunity(offer, storedMeta[offer.id], profileData));
+        let mappedCvs = [];
+
+        try {
+          const cvResponse = await cvService.listCvs();
+          mappedCvs = Array.isArray(cvResponse.data) ? cvResponse.data.map(mapBackendCvListItem) : [];
+        } catch {
+          mappedCvs = [];
+        }
 
         if (!cancelled) {
           setExtras(storedExtras);
           setOfferMeta(storedMeta);
-          setCvs(Array.isArray(storedCvs) ? storedCvs : []);
+          setCvs(mappedCvs);
           setProfile(profileData);
           setJobOffers(mappedOffers);
           setHydrated(true);
@@ -482,8 +516,10 @@ export function PrototypeAppProvider({ children }) {
       return;
     }
 
-    writeStorage(CV_LIBRARY_KEY, userKey, cvs);
-  }, [cvs, initialized, userKey]);
+    if (!authEnabled || !authenticated) {
+      writeStorage(CV_LIBRARY_KEY, userKey, cvs);
+    }
+  }, [authEnabled, authenticated, cvs, initialized, userKey]);
 
   const updateProfile = async (payload) => {
     const nextProfile = {
@@ -685,17 +721,73 @@ export function PrototypeAppProvider({ children }) {
     }
 
     const response = await cvService.generateCv({ opportunityId: offerId });
-    const localCv = createLocalCvFromGeneratedResponse(response.data, offer, profile, cvs.length);
+    const localCv = mapBackendCvDetails(response.data, {
+      targetOfferId: offer.id,
+      jobTitle: offer.jobTitle,
+      companyName: offer.companyName,
+      template: cvs.length % 2 === 0 ? "Atelier Ivory" : "Monograph Slate",
+    });
     setCvs((current) => [localCv, ...current]);
     return localCv;
+  };
+
+  const loadCv = async (id) => {
+    const existing = cvs.find((entry) => entry.id === id);
+
+    if (!authEnabled || !authenticated) {
+      return existing ?? null;
+    }
+
+    if (existing?.content) {
+      return existing;
+    }
+
+    const response = await cvService.getCv(id);
+    const mappedCv = mapBackendCvDetails(response.data, existing);
+    setCvs((current) => current.map((cv) => (cv.id === id ? mappedCv : cv)));
+    return mappedCv;
   };
 
   const updateCv = (id, payload) => {
     setCvs((current) => current.map((cv) => (cv.id === id ? { ...cv, ...payload } : cv)));
   };
 
-  const deleteCv = (id) => {
+  const deleteCv = async (id) => {
+    if (authEnabled && authenticated) {
+      await cvService.deleteCv(id);
+    }
+
     setCvs((current) => current.filter((cv) => cv.id !== id));
+  };
+
+  const downloadCv = async (id) => {
+    const cv = cvs.find((entry) => entry.id === id);
+
+    if (authEnabled && authenticated) {
+      const response = await cvService.downloadCv(id);
+      const fallbackName = `${cv?.jobTitle || "generated"}-${cv?.companyName || "cv"}.pdf`
+        .toLowerCase()
+        .replace(/[^a-z0-9.-]+/g, "-");
+      saveBlob(response.data, getDownloadFileName(response, fallbackName));
+      return;
+    }
+
+    if (!cv?.content) {
+      throw new Error("CV content is not available locally.");
+    }
+
+    const html = `
+      <html>
+        <head><title>${cv.jobTitle}</title></head>
+        <body style="font-family: Georgia, serif; padding: 48px; line-height: 1.6;">
+          <h1>${cv.content.header.name}</h1>
+          <p>${cv.content.header.title}</p>
+          <h2>Summary</h2>
+          <p>${cv.content.summary}</p>
+        </body>
+      </html>
+    `;
+    saveBlob(new Blob([html], { type: "text/html" }), `${cv.jobTitle || "generated-cv"}.html`);
   };
 
   const value = {
@@ -713,8 +805,10 @@ export function PrototypeAppProvider({ children }) {
     updateJobOffer,
     deleteJobOffer,
     generateCv,
+    loadCv,
     updateCv,
     deleteCv,
+    downloadCv,
     usingBackendData: authEnabled && authenticated,
   };
 

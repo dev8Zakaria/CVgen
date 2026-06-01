@@ -13,7 +13,7 @@ function formatDate(date) {
 }
 
 export function MyCvsPage() {
-  const { hydrated, cvs, deleteCv } = usePrototypeApp();
+  const { hydrated, cvs, deleteCv, downloadCv } = usePrototypeApp();
   const toast = useToast();
   const [pendingDelete, setPendingDelete] = useState(null);
 
@@ -21,27 +21,12 @@ export function MyCvsPage() {
     return <SkeletonBlock className="h-80" />;
   }
 
-  const downloadPreview = (cv) => {
-    const popup = window.open("", "_blank");
-    if (!popup) {
-      toast.error("Download blocked", "Please allow popups to use the print-to-PDF prototype flow.");
-      return;
+  const downloadPreview = async (cv) => {
+    try {
+      await downloadCv(cv.id);
+    } catch {
+      toast.error("Download failed", "The CV could not be downloaded from the backend.");
     }
-
-    popup.document.write(`
-      <html>
-        <head><title>${cv.jobTitle}</title></head>
-        <body style="font-family: Georgia, serif; padding: 48px; line-height: 1.6;">
-          <h1>${cv.content.header.name}</h1>
-          <p>${cv.content.header.title}</p>
-          <h2>Summary</h2>
-          <p>${cv.content.summary}</p>
-        </body>
-      </html>
-    `);
-    popup.document.close();
-    popup.focus();
-    popup.print();
   };
 
   return (
@@ -108,10 +93,14 @@ export function MyCvsPage() {
         confirmLabel="Delete CV"
         tone="danger"
         onCancel={() => setPendingDelete(null)}
-        onConfirm={() => {
-          deleteCv(pendingDelete.id);
-          toast.success("CV deleted");
-          setPendingDelete(null);
+        onConfirm={async () => {
+          try {
+            await deleteCv(pendingDelete.id);
+            toast.success("CV deleted");
+            setPendingDelete(null);
+          } catch {
+            toast.error("Delete failed", "The backend could not delete this CV.");
+          }
         }}
       />
     </div>

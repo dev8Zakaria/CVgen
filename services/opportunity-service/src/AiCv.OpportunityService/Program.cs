@@ -1,4 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using AiCv.OpportunityService.Data;
+using AiCv.OpportunityService.Modules.Ai;
+using AiCv.OpportunityService.Modules.Opportunities.Repositories;
+using OpportunityDomainService = AiCv.OpportunityService.Modules.Opportunities.Services.OpportunityService;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
@@ -8,7 +13,10 @@ const string corsPolicy = "ConfiguredCors";
 
 var builder = WebApplication.CreateBuilder(args);
 var jwtAuthority = builder.Configuration["Keycloak:Authority"];
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var aiServiceBaseUrl = builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000";
 
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -40,6 +48,18 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddDbContext<OpportunityDbContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+});
+
+builder.Services.AddScoped<OpportunityRepository>();
+builder.Services.AddScoped<OpportunityDomainService>();
+builder.Services.AddHttpClient<IAiService, AiService>(client =>
+{
+    client.BaseAddress = new Uri(aiServiceBaseUrl);
+});
+
 if (!string.IsNullOrWhiteSpace(jwtAuthority))
 {
     builder.Services
@@ -51,12 +71,19 @@ if (!string.IsNullOrWhiteSpace(jwtAuthority))
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateAudience = false,
-                ValidateIssuer = true
+                ValidateIssuer = !builder.Environment.IsDevelopment()
             };
         });
 }
 
 var app = builder.Build();
+
+if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<OpportunityDbContext>();
+    dbContext.Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -72,6 +99,8 @@ if (!string.IsNullOrWhiteSpace(jwtAuthority))
 }
 
 app.UseAuthorization();
+
+app.MapControllers();
 
 app.MapGet("/health", () => Results.Ok(new
 {

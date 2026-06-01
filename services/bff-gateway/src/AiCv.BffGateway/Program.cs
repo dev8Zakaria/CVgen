@@ -1,13 +1,33 @@
+using AiCv.BffGateway.Endpoints;
+using AiCv.BffGateway.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Yarp.ReverseProxy;
 
 const string serviceName = "bff-gateway";
 const string serviceDisplayName = "AI CV BFF Gateway";
-const string corsPolicy = "ConfiguredCors";
 
 var builder = WebApplication.CreateBuilder(args);
-var jwtAuthority = builder.Configuration["Keycloak:Authority"];
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = builder.Configuration["Keycloak:Authority"];
+        options.Audience = builder.Configuration["Keycloak:Audience"] ?? "frontend-client";
+        options.RequireHttpsMetadata = builder.Configuration.GetValue("Keycloak:RequireHttpsMetadata", false);
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateAudience = false,
+            ValidateIssuer = !builder.Environment.IsDevelopment()
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("require-auth", policy => policy.RequireAuthenticatedUser());
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -19,42 +39,19 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+builder.Services.AddHttpClient();
+
+builder.Services
+    .AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(corsPolicy, policy =>
-    {
-        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
-
-        if (allowedOrigins.Length == 0 || allowedOrigins.Contains("*"))
-        {
-            policy.AllowAnyOrigin();
-        }
-        else
-        {
-            policy.WithOrigins(allowedOrigins);
-        }
-
-        policy.AllowAnyHeader().AllowAnyMethod();
-    });
+    options.AddPolicy("FrontendPolicy", policy =>
+        policy.WithOrigins("http://localhost:5173")
+            .AllowAnyMethod()
+            .AllowAnyHeader());
 });
-
-builder.Services.AddAuthorization();
-
-if (!string.IsNullOrWhiteSpace(jwtAuthority))
-{
-    builder.Services
-        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
-        {
-            options.Authority = jwtAuthority;
-            options.RequireHttpsMetadata = builder.Configuration.GetValue("Keycloak:RequireHttpsMetadata", false);
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateAudience = false,
-                ValidateIssuer = true
-            };
-        });
-}
 
 var app = builder.Build();
 
@@ -64,13 +61,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors(corsPolicy);
-
-if (!string.IsNullOrWhiteSpace(jwtAuthority))
-{
-    app.UseAuthentication();
-}
-
+app.UseCors("FrontendPolicy");
+app.UseMiddleware<ExceptionMiddleware>();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new
@@ -86,11 +79,15 @@ app.MapGet("/info", (IConfiguration configuration) => Results.Ok(new
 {
     service = serviceName,
     displayName = serviceDisplayName,
-    responsibility = "Single frontend entry point that composes API responses from downstream services.",
+    responsibility = "Single frontend entry point that proxies and composes responses from downstream services.",
     downstreamServices = configuration.GetSection("DownstreamServices").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>()
 }))
 .WithName("GetServiceInfo")
 .AllowAnonymous();
+
+app.MapAggregatedEndpoints();
+app.MapHealthEndpoints();
+app.MapReverseProxy();
 
 app.Run();
 
