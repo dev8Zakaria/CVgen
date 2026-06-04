@@ -43,7 +43,7 @@ export function StatusPill({ children, tone = "default", className }) {
 
 export function SectionHeading({ eyebrow, title, description, action, className }) {
   return (
-    <div className={cn("flex flex-col gap-4 md:flex-row md:items-end md:justify-between animate-reveal", className)}>
+    <div className={cn("flex flex-col gap-4 md:flex-row md:items-end md:justify-between", className)}>
       <div className="space-y-1.5">
         {eyebrow ? <p className="text-sm font-semibold text-primary">{eyebrow}</p> : null}
         <div>
@@ -58,7 +58,7 @@ export function SectionHeading({ eyebrow, title, description, action, className 
 
 export function StatCard({ label, value, meta, accent, className }) {
   return (
-    <div className={cn("paper-panel p-6", className)}>
+    <div className={cn("paper-panel p-6 transition-colors hover:border-primary/25", className)}>
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm font-medium text-muted-foreground">{label}</p>
         {accent ? <div className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground">{accent}</div> : null}

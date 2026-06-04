@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AiCv.OpportunityService.Modules.Ai;
 using AiCv.OpportunityService.Modules.Ai.DTOs;
+using AiCv.OpportunityService.Modules.Messaging;
 using AiCv.OpportunityService.Modules.Opportunities.DTOs;
 using AiCv.OpportunityService.Modules.Opportunities.Entities;
 using AiCv.OpportunityService.Modules.Opportunities.Repositories;
@@ -11,11 +12,13 @@ public class OpportunityService
 {
     private readonly OpportunityRepository _repository;
     private readonly IAiService _aiService;
+    private readonly IEventPublisher _eventPublisher;
 
-    public OpportunityService(OpportunityRepository repository, IAiService aiService)
+    public OpportunityService(OpportunityRepository repository, IAiService aiService, IEventPublisher eventPublisher)
     {
         _repository = repository;
         _aiService = aiService;
+        _eventPublisher = eventPublisher;
     }
 
     public async Task<OpportunityDetailsResponseDto> CreateAsync(string keycloakId, CreateOpportunityDto dto)
@@ -33,6 +36,15 @@ public class OpportunityService
 
         await _repository.AddAsync(jobOffer);
         await _repository.SaveChangesAsync();
+        await _eventPublisher.PublishAsync("opportunity.created", new
+        {
+            jobOffer.Id,
+            KeycloakId = keycloakId,
+            jobOffer.Title,
+            jobOffer.CompanyName,
+            jobOffer.AnalysisStatus,
+            jobOffer.CreatedAt
+        });
 
         return MapToResponseDto(jobOffer);
     }
@@ -122,6 +134,17 @@ public class OpportunityService
             jobOffer.AnalysisStatus = "completed";
             jobOffer.UpdatedAt = DateTime.UtcNow;
             await _repository.SaveChangesAsync();
+            await _eventPublisher.PublishAsync("opportunity.analyzed", new
+            {
+                jobOffer.Id,
+                KeycloakId = keycloakId,
+                jobOffer.Title,
+                jobOffer.CompanyName,
+                jobOffer.AnalysisStatus,
+                jobOffer.UpdatedAt,
+                Skills = jobOffer.Analysis?.ExtractedSkills ?? [],
+                Keywords = jobOffer.Analysis?.ExtractedKeywords ?? []
+            }, cancellationToken);
 
             return MapToResponseDto(jobOffer);
         }
@@ -130,6 +153,15 @@ public class OpportunityService
             jobOffer.AnalysisStatus = "failed";
             jobOffer.UpdatedAt = DateTime.UtcNow;
             await _repository.SaveChangesAsync();
+            await _eventPublisher.PublishAsync("opportunity.analysis_failed", new
+            {
+                jobOffer.Id,
+                KeycloakId = keycloakId,
+                jobOffer.Title,
+                jobOffer.CompanyName,
+                jobOffer.AnalysisStatus,
+                jobOffer.UpdatedAt
+            }, cancellationToken);
 
             throw new AiAnalysisFailedException("AI analysis failed for this job offer.", exception);
         }

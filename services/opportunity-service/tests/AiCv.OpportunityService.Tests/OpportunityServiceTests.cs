@@ -1,6 +1,7 @@
 using AiCv.OpportunityService.Data;
 using AiCv.OpportunityService.Modules.Ai;
 using AiCv.OpportunityService.Modules.Ai.DTOs;
+using AiCv.OpportunityService.Modules.Messaging;
 using AiCv.OpportunityService.Modules.Opportunities.DTOs;
 using AiCv.OpportunityService.Modules.Opportunities.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -119,7 +120,7 @@ public class OpportunityServiceTests
 
     private static OpportunityDomainService CreateService(OpportunityDbContext context)
     {
-        return new OpportunityDomainService(new OpportunityRepository(context), new FakeAiService());
+        return new OpportunityDomainService(new OpportunityRepository(context), new FakeAiService(), new NoOpEventPublisher());
     }
 
     private sealed class FakeAiService : IAiService

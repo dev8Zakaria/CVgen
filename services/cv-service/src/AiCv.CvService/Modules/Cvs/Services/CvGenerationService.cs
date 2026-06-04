@@ -5,6 +5,7 @@ using AiCv.CvService.Modules.Cvs.DTOs;
 using AiCv.CvService.Modules.Cvs.Entities;
 using AiCv.CvService.Modules.Cvs.Repositories;
 using AiCv.CvService.Modules.Cvs.Storage;
+using AiCv.CvService.Modules.Messaging;
 
 namespace AiCv.CvService.Modules.Cvs.Services;
 
@@ -17,19 +18,22 @@ public class CvGenerationService
     private readonly IOpportunityClient _opportunityClient;
     private readonly IAiCvGenerationClient _aiClient;
     private readonly ICvObjectStorage _objectStorage;
+    private readonly IEventPublisher _eventPublisher;
 
     public CvGenerationService(
         CvRepository repository,
         IProfileClient profileClient,
         IOpportunityClient opportunityClient,
         IAiCvGenerationClient aiClient,
-        ICvObjectStorage objectStorage)
+        ICvObjectStorage objectStorage,
+        IEventPublisher eventPublisher)
     {
         _repository = repository;
         _profileClient = profileClient;
         _opportunityClient = opportunityClient;
         _aiClient = aiClient;
         _objectStorage = objectStorage;
+        _eventPublisher = eventPublisher;
     }
 
     public async Task<GeneratedCvResponseDto?> GenerateAsync(
@@ -46,8 +50,27 @@ public class CvGenerationService
             return null;
         }
 
+        return await GenerateFromSnapshotsAsync(
+            keycloakId,
+            request.AssetFile?.FileName,
+            request.AssetFile?.ContentType,
+            request.AssetFile?.Length,
+            profile,
+            opportunity,
+            cancellationToken);
+    }
+
+    public async Task<GeneratedCvResponseDto> GenerateFromSnapshotsAsync(
+        string keycloakId,
+        string? assetFileName,
+        string? assetContentType,
+        long? assetSizeBytes,
+        ProfileDto profile,
+        OpportunityDto opportunity,
+        CancellationToken cancellationToken = default)
+    {
         var aiResponse = await _aiClient.GenerateCvAsync(BuildAiRequest(profile, opportunity), cancellationToken);
-        var response = BuildGeneratedResponse(Guid.NewGuid(), request.AssetFile?.FileName, profile, opportunity, aiResponse);
+        var response = BuildGeneratedResponse(Guid.NewGuid(), assetFileName, profile, opportunity, aiResponse);
 
         var pdfFileName = SanitizeFileName($"{response.Content.Header.Name}-{response.Target.JobTitle}-{response.Target.CompanyName}-cv.pdf");
         var pdfObjectKey = BuildPdfObjectKey(keycloakId, response.Id, pdfFileName);
@@ -58,16 +81,16 @@ public class CvGenerationService
         {
             Id = response.Id,
             KeycloakId = keycloakId,
-            OpportunityId = request.OpportunityId,
+            OpportunityId = opportunity.Id,
             JobTitle = opportunity.Title,
             CompanyName = opportunity.CompanyName,
             Template = response.Content.Target.Role.Length % 2 == 0 ? "Atelier Ivory" : "Monograph Slate",
             Status = "Saved",
             ProfessionalSummary = response.ProfessionalSummary,
             ContentJson = JsonSerializer.Serialize(response, JsonOptions),
-            AssetFileName = request.AssetFile?.FileName,
-            AssetContentType = request.AssetFile?.ContentType,
-            AssetSizeBytes = request.AssetFile?.Length,
+            AssetFileName = assetFileName,
+            AssetContentType = assetContentType,
+            AssetSizeBytes = assetSizeBytes,
             PdfObjectKey = pdfObjectKey,
             PdfBucketName = _objectStorage.BucketName,
             PdfSizeBytes = pdfContent.Length,
@@ -77,6 +100,20 @@ public class CvGenerationService
 
         await _repository.AddAsync(generatedCv);
         await _repository.SaveChangesAsync();
+        await _eventPublisher.PublishAsync("cv.generated", new
+        {
+            generatedCv.Id,
+            generatedCv.KeycloakId,
+            generatedCv.OpportunityId,
+            generatedCv.JobTitle,
+            generatedCv.CompanyName,
+            generatedCv.Template,
+            generatedCv.Status,
+            generatedCv.PdfBucketName,
+            generatedCv.PdfObjectKey,
+            generatedCv.PdfSizeBytes,
+            generatedCv.CreatedAt
+        }, cancellationToken);
 
         return response;
     }
@@ -113,6 +150,15 @@ public class CvGenerationService
 
         _repository.Remove(cv);
         await _repository.SaveChangesAsync();
+        await _eventPublisher.PublishAsync("cv.deleted", new
+        {
+            cv.Id,
+            cv.KeycloakId,
+            cv.OpportunityId,
+            cv.JobTitle,
+            cv.CompanyName,
+            DeletedAt = DateTimeOffset.UtcNow
+        });
 
         return true;
     }
@@ -554,6 +600,24 @@ public class CvGenerationService
 
         if (groupedSkills.Count > 0)
         {
+            var existingSkills = groupedSkills
+                .SelectMany(group => group.Items)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var targetedSkills = fallbackSkills
+                .Where(skill => !string.IsNullOrWhiteSpace(skill))
+                .Where(skill => !existingSkills.Contains(skill))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (targetedSkills.Count > 0)
+            {
+                groupedSkills.Add(new GeneratedCvSkillGroupDto
+                {
+                    Label = "Targeted Skills",
+                    Items = targetedSkills
+                });
+            }
+
             return groupedSkills;
         }
 

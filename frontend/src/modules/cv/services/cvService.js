@@ -13,6 +13,7 @@ export const cvService = {
 
     return apiClient.post("/cv/generate", formData);
   },
+  getGenerationJob: (jobId) => apiClient.get(`/cv/generation-jobs/${jobId}`),
   downloadCv: (id) => apiClient.get(`/cvs/${id}/download`, { responseType: "blob" }),
   deleteCv: (id) => apiClient.delete(`/cvs/${id}`),
 };

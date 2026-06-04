@@ -2,7 +2,7 @@ import { ArrowRight, BriefcaseBusiness, Clock3, FileText, Sparkles } from "lucid
 import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
-import { EmptyState, SectionHeading, SkeletonBlock, StatCard, StatusPill } from "@/shared/components/app-ui";
+import { EmptyState, SectionHeading, StatCard, StatusPill } from "@/shared/components/app-ui";
 import { ROUTES, getCvPreviewRoute, getJobAnalysisRoute } from "@/shared/constants/routes";
 import { usePrototypeApp } from "@/shared/providers/PrototypeAppProvider";
 
@@ -10,16 +10,24 @@ export function DashboardPage() {
   const { hydrated, profile, jobOffers, cvs } = usePrototypeApp();
   const recentCv = cvs.slice(0, 3);
   const recentOffers = jobOffers.slice(0, 3);
+  const analyzedOffers = jobOffers.filter((offer) => offer.analysis).length;
+  const firstName = profile.fullName?.trim().split(" ")[0] || "there";
+  const profileSections = [
+    profile.experience.length > 0,
+    profile.education.length > 0,
+    profile.projects.length > 0,
+    profile.skills.length > 0,
+  ];
+  const profileScore = Math.round((profileSections.filter(Boolean).length / profileSections.length) * 100);
 
   if (!hydrated) {
     return (
-      <div className="grid gap-5">
-        <SkeletonBlock className="h-44" />
-        <div className="grid gap-5 lg:grid-cols-3">
-          <SkeletonBlock className="h-44" />
-          <SkeletonBlock className="h-44" />
-          <SkeletonBlock className="h-44" />
-        </div>
+      <div className="paper-panel p-6">
+        <p className="text-sm font-medium text-muted-foreground">Loading workspace data...</p>
+        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground">Preparing your dashboard</h1>
+        <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+          Your profile shell is ready. Backend data will appear here as soon as the services respond.
+        </p>
       </div>
     );
   }
@@ -28,7 +36,7 @@ export function DashboardPage() {
     <div className="space-y-6">
       <SectionHeading
         eyebrow="Dashboard"
-        title={`Welcome back, ${profile.fullName.split(" ")[0]}.`}
+        title={`Welcome back, ${firstName}.`}
         description="This studio keeps your profile, job offers, and generated CVs in one polished workflow so every application feels deliberate."
         action={
           <Button asChild>
@@ -41,9 +49,9 @@ export function DashboardPage() {
       />
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <StatCard label="CVs Generated" value={cvs.length} meta="Saved drafts and tailored applications ready to preview or export." accent="Library" />
-        <StatCard label="Job Offers" value={jobOffers.length} meta="Tracked roles analyzed against your profile and keyword baseline." accent="Tracked" />
-        <StatCard label="Current Focus" value={recentOffers[0]?.companyName || "Profile"} meta="Move from role analysis to CV generation with one click." accent="Live" />
+        <StatCard label="CVs Generated" value={cvs.length} meta="Saved PDFs and tailored drafts ready to preview." accent="Library" />
+        <StatCard label="Analyzed Offers" value={`${analyzedOffers}/${jobOffers.length}`} meta="Roles with extracted skills, keywords, and focus points." accent="Signal" />
+        <StatCard label="Profile Readiness" value={`${profileScore}%`} meta="Experience, education, projects, and skills coverage." accent="Quality" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -75,7 +83,7 @@ export function DashboardPage() {
                 <Link
                   key={cv.id}
                   to={getCvPreviewRoute(cv.id)}
-                  className="flex items-center justify-between rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-muted/50"
+                  className="flex items-center justify-between rounded-lg border bg-card p-4 transition-colors hover:border-primary/25 hover:bg-primary/[0.03]"
                 >
                   <div>
                     <p className="font-semibold text-foreground">{cv.jobTitle}</p>
@@ -92,21 +100,28 @@ export function DashboardPage() {
         </div>
 
         <div className="grid gap-6">
-          <div className="paper-panel p-6">
+          <div className="paper-panel border-primary/20 bg-primary/[0.03] p-6">
             <div className="flex items-center gap-3 border-b pb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                 <Clock3 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Profile Completeness</p>
-                <h2 className="font-display text-xl font-bold text-foreground">Premium CV Requirements</h2>
+                <p className="text-sm font-medium text-muted-foreground">Next best action</p>
+                <h2 className="font-display text-xl font-bold text-foreground">
+                  {analyzedOffers > 0 ? "Generate a targeted CV" : "Analyze a job offer"}
+                </h2>
               </div>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              Personal data, experience, projects, and certifications are all editable inside the profile studio.
+              {analyzedOffers > 0
+                ? "You already have analyzed opportunities. Pick one and let the CV service create a role-specific PDF."
+                : "Start by adding a job description so the platform can extract ATS keywords and role expectations."}
             </p>
-            <Button asChild variant="secondary" className="mt-6 w-full">
-              <Link to={ROUTES.profile}>Open profile studio</Link>
+            <Button asChild className="mt-6 w-full">
+              <Link to={analyzedOffers > 0 ? ROUTES.generateCv : ROUTES.addOpportunity}>
+                {analyzedOffers > 0 ? "Generate CV" : "Add job offer"}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
           </div>
 
@@ -125,7 +140,7 @@ export function DashboardPage() {
                 <Link
                   key={offer.id}
                   to={getJobAnalysisRoute(offer.id)}
-                  className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm transition-colors hover:bg-muted/50"
+                  className="flex items-center justify-between rounded-lg border bg-card p-3 transition-colors hover:border-primary/25 hover:bg-primary/[0.03]"
                 >
                   <div>
                     <p className="font-medium text-foreground">{offer.jobTitle}</p>

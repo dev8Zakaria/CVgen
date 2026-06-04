@@ -31,7 +31,7 @@ export function DashboardLayout() {
 
   return (
     <div className="grid min-h-[calc(100vh-2rem)] gap-0 lg:grid-cols-[296px_minmax(0,1fr)]">
-      <aside className="border-b border-border/70 bg-white/52 px-5 py-5 backdrop-blur-xl dark:bg-slate-950/55 lg:border-b-0 lg:border-r">
+      <aside className="border-b border-border/70 bg-card/95 px-5 py-5 lg:border-b-0 lg:border-r">
         <div className="flex items-center justify-between lg:block">
           <AppLogo compact />
           <div className="flex items-center gap-2 lg:hidden">
@@ -72,7 +72,7 @@ export function DashboardLayout() {
       </aside>
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-10 flex h-16 items-center border-b bg-background/95 px-6 backdrop-blur md:px-8">
+        <header className="sticky top-0 z-10 flex h-16 items-center border-b bg-background px-6 md:px-8">
           <div className="flex w-full items-center justify-between">
             <div>
               <h1 className="font-display text-lg font-semibold tracking-tight text-foreground">Welcome, {displayName.split(" ")[0]}</h1>

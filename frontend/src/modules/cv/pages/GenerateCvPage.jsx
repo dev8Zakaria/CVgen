@@ -35,31 +35,42 @@ export function GenerateCvPage() {
       return;
     }
 
+    let active = true;
     const progressInterval = window.setInterval(() => {
-      setProgress((value) => Math.min(96, value + 11));
+      setProgress((value) => Math.min(94, value + 6));
     }, 650);
     const messageInterval = window.setInterval(() => {
       setMessageIndex((value) => Math.min(messages.length - 1, value + 1));
     }, 900);
-    const finishTimer = window.setTimeout(async () => {
+
+    const runGeneration = async () => {
       try {
         const generated = await generateCv(selectedOfferId);
-        if (generated) {
+        if (active && generated) {
+          setProgress(100);
           toast.success("CV generated", "Your tailored CV is now available in the preview workspace.");
           navigate(getCvPreviewRoute(generated.id));
         }
       } catch {
+        if (!active) {
+          return;
+        }
+
         toast.error("CV generation failed", "The backend could not generate a CV for the selected offer.");
         setCurrentStep(1);
       } finally {
-        setGenerationStarted(false);
+        if (active) {
+          setGenerationStarted(false);
+        }
       }
-    }, 3200);
+    };
+
+    runGeneration();
 
     return () => {
+      active = false;
       window.clearInterval(progressInterval);
       window.clearInterval(messageInterval);
-      window.clearTimeout(finishTimer);
     };
   }, [currentStep, generateCv, generationStarted, navigate, selectedOfferId, toast]);
 
@@ -147,7 +158,7 @@ export function GenerateCvPage() {
                 key={offer.id}
                 type="button"
                 onClick={() => setSelectedOfferId(offer.id)}
-                className={`rounded-lg border p-4 text-left transition-all ${
+                className={`cursor-pointer rounded-lg border p-4 text-left transition-colors ${
                   selectedOfferId === offer.id
                     ? "border-primary bg-primary/5 ring-1 ring-primary"
                     : "bg-card hover:border-primary/50 hover:bg-muted/50"
@@ -156,7 +167,7 @@ export function GenerateCvPage() {
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="font-semibold text-foreground">{offer.jobTitle}</p>
-                    <p className="text-sm text-muted-foreground">{offer.companyName} · {offer.location}</p>
+                    <p className="text-sm text-muted-foreground">{offer.companyName} - {offer.location}</p>
                   </div>
                   <StatusPill tone="success">Analyzed</StatusPill>
                 </div>
@@ -194,7 +205,7 @@ export function GenerateCvPage() {
             <p className="mt-3 text-sm leading-7 text-muted-foreground">{messages[messageIndex]}</p>
 
             <div className="mt-8 h-3 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
+              <div className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out" style={{ width: `${progress}%` }} />
             </div>
             <p className="mt-3 font-mono text-xs uppercase tracking-[0.28em] text-muted-foreground">{progress}% complete</p>
           </div>

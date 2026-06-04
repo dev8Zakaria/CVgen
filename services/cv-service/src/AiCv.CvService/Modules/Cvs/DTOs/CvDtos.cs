@@ -8,6 +8,17 @@ public sealed class GenerateCvRequestDto
     public IFormFile? AssetFile { get; set; }
 }
 
+public sealed class CvGenerationJobResponseDto
+{
+    public Guid JobId { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public Guid OpportunityId { get; set; }
+    public Guid? GeneratedCvId { get; set; }
+    public string? ErrorMessage { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
 public sealed class GeneratedCvProfileDto
 {
     public string FullName { get; set; } = string.Empty;

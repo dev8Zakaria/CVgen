@@ -10,6 +10,7 @@ const PrototypeAppContext = createContext(null);
 const PROFILE_EXTRAS_KEY = "cvgen.profile.extras";
 const CV_LIBRARY_KEY = "cvgen.cv.library";
 const OFFER_META_KEY = "cvgen.offer.meta";
+const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 function createEmptyExtras() {
   return {
@@ -425,24 +426,50 @@ export function PrototypeAppProvider({ children }) {
       const storedExtras = readStorage(PROFILE_EXTRAS_KEY, userKey, createEmptyExtras());
       const storedMeta = readStorage(OFFER_META_KEY, userKey, {});
       const storedCvs = readStorage(CV_LIBRARY_KEY, userKey, []);
+      const fallbackProfile = mapBackendProfile(null, user, storedExtras);
 
       if (!authEnabled || !authenticated) {
         if (!cancelled) {
           setExtras(storedExtras);
           setOfferMeta(storedMeta);
           setCvs(Array.isArray(storedCvs) ? storedCvs : []);
-          setProfile(mapBackendProfile(null, user, storedExtras));
+          setProfile(fallbackProfile);
           setJobOffers([]);
           setHydrated(true);
         }
         return;
       }
 
+      if (!cancelled) {
+        setExtras(storedExtras);
+        setOfferMeta(storedMeta);
+        setCvs(Array.isArray(storedCvs) ? storedCvs : []);
+        setProfile(fallbackProfile);
+        setJobOffers([]);
+        setHydrated(true);
+      }
+
       try {
         const profileResponse = await profileService.getCurrentProfile();
         const profileData = mapBackendProfile(profileResponse.data, user, storedExtras);
 
-        const listResponse = await opportunityService.listOpportunities();
+        if (!cancelled) {
+          setProfile(profileData);
+        }
+
+        const [listResponse, cvResponse] = await Promise.all([
+          opportunityService.listOpportunities(),
+          cvService.listCvs().catch(() => ({ data: [] })),
+        ]);
+
+        const mappedListOffers = listResponse.data.map((offer) => mapBackendOpportunity(offer, storedMeta[offer.id], profileData));
+        const mappedCvs = Array.isArray(cvResponse.data) ? cvResponse.data.map(mapBackendCvListItem) : [];
+
+        if (!cancelled) {
+          setCvs(mappedCvs);
+          setJobOffers(mappedListOffers);
+        }
+
         const detailedOffers = await Promise.all(
           listResponse.data.map(async (offer) => {
             try {
@@ -459,14 +486,6 @@ export function PrototypeAppProvider({ children }) {
         );
 
         const mappedOffers = detailedOffers.map((offer) => mapBackendOpportunity(offer, storedMeta[offer.id], profileData));
-        let mappedCvs = [];
-
-        try {
-          const cvResponse = await cvService.listCvs();
-          mappedCvs = Array.isArray(cvResponse.data) ? cvResponse.data.map(mapBackendCvListItem) : [];
-        } catch {
-          mappedCvs = [];
-        }
 
         if (!cancelled) {
           setExtras(storedExtras);
@@ -481,7 +500,7 @@ export function PrototypeAppProvider({ children }) {
           setExtras(storedExtras);
           setOfferMeta(storedMeta);
           setCvs(Array.isArray(storedCvs) ? storedCvs : []);
-          setProfile(mapBackendProfile(null, user, storedExtras));
+          setProfile(fallbackProfile);
           setJobOffers([]);
           setHydrated(true);
         }
@@ -721,7 +740,13 @@ export function PrototypeAppProvider({ children }) {
     }
 
     const response = await cvService.generateCv({ opportunityId: offerId });
-    const localCv = mapBackendCvDetails(response.data, {
+    let generatedCv = response.data;
+
+    if (response.status === 202 || response.data?.jobId) {
+      generatedCv = await waitForGeneratedCv(response.data.jobId);
+    }
+
+    const localCv = mapBackendCvDetails(generatedCv, {
       targetOfferId: offer.id,
       jobTitle: offer.jobTitle,
       companyName: offer.companyName,
@@ -729,6 +754,30 @@ export function PrototypeAppProvider({ children }) {
     });
     setCvs((current) => [localCv, ...current]);
     return localCv;
+  };
+
+  const waitForGeneratedCv = async (jobId) => {
+    if (!jobId) {
+      throw new Error("CV generation job was not returned by the backend.");
+    }
+
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const jobResponse = await cvService.getGenerationJob(jobId);
+      const job = jobResponse.data;
+
+      if (job.status === "completed" && job.generatedCvId) {
+        const cvResponse = await cvService.getCv(job.generatedCvId);
+        return cvResponse.data;
+      }
+
+      if (job.status === "failed") {
+        throw new Error(job.errorMessage || "CV generation failed.");
+      }
+
+      await sleep(1500);
+    }
+
+    throw new Error("CV generation is taking longer than expected.");
   };
 
   const loadCv = async (id) => {

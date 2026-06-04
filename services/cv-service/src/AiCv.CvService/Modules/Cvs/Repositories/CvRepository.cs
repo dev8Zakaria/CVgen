@@ -18,6 +18,11 @@ public class CvRepository
         await _context.GeneratedCvs.AddAsync(cv);
     }
 
+    public async Task AddJobAsync(CvGenerationJob job)
+    {
+        await _context.CvGenerationJobs.AddAsync(job);
+    }
+
     public Task<List<GeneratedCv>> GetAllByUserAsync(string keycloakId)
     {
         return _context.GeneratedCvs
@@ -29,6 +34,16 @@ public class CvRepository
     public Task<GeneratedCv?> GetByIdAndUserAsync(Guid id, string keycloakId)
     {
         return _context.GeneratedCvs.FirstOrDefaultAsync(cv => cv.Id == id && cv.KeycloakId == keycloakId);
+    }
+
+    public Task<CvGenerationJob?> GetJobByIdAndUserAsync(Guid id, string keycloakId)
+    {
+        return _context.CvGenerationJobs.FirstOrDefaultAsync(job => job.Id == id && job.KeycloakId == keycloakId);
+    }
+
+    public Task<CvGenerationJob?> GetJobByIdAsync(Guid id)
+    {
+        return _context.CvGenerationJobs.FirstOrDefaultAsync(job => job.Id == id);
     }
 
     public void Remove(GeneratedCv cv)

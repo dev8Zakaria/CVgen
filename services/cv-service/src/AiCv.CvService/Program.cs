@@ -4,6 +4,7 @@ using AiCv.CvService.Modules.Cvs.Clients;
 using AiCv.CvService.Modules.Cvs.Repositories;
 using AiCv.CvService.Modules.Cvs.Services;
 using AiCv.CvService.Modules.Cvs.Storage;
+using AiCv.CvService.Modules.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -58,6 +59,21 @@ builder.Services.AddDbContext<CvDbContext>(options =>
 
 builder.Services.AddScoped<CvRepository>();
 builder.Services.AddScoped<CvGenerationService>();
+builder.Services.AddScoped<CvGenerationJobService>();
+builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));
+builder.Services.AddSingleton<IEventPublisher>(serviceProvider =>
+    builder.Configuration.GetValue("RabbitMq:Enabled", false)
+        ? serviceProvider.GetRequiredService<RabbitMqEventPublisher>()
+        : serviceProvider.GetRequiredService<NoOpEventPublisher>());
+builder.Services.AddSingleton<ICvGenerationQueue>(serviceProvider =>
+    builder.Configuration.GetValue("RabbitMq:Enabled", false)
+        ? serviceProvider.GetRequiredService<RabbitMqCvGenerationQueue>()
+        : serviceProvider.GetRequiredService<NoOpCvGenerationQueue>());
+builder.Services.AddSingleton<RabbitMqEventPublisher>();
+builder.Services.AddSingleton<NoOpEventPublisher>();
+builder.Services.AddSingleton<RabbitMqCvGenerationQueue>();
+builder.Services.AddSingleton<NoOpCvGenerationQueue>();
+builder.Services.AddHostedService<CvGenerationWorker>();
 builder.Services.AddHttpClient<ICvObjectStorage, CvObjectStorage>();
 builder.Services.AddHttpClient<IProfileClient, ProfileClient>(client =>
 {

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using AiCv.OpportunityService.Data;
 using AiCv.OpportunityService.Modules.Ai;
+using AiCv.OpportunityService.Modules.Messaging;
 using AiCv.OpportunityService.Modules.Opportunities.Repositories;
 using OpportunityDomainService = AiCv.OpportunityService.Modules.Opportunities.Services.OpportunityService;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +56,13 @@ builder.Services.AddDbContext<OpportunityDbContext>(options =>
 
 builder.Services.AddScoped<OpportunityRepository>();
 builder.Services.AddScoped<OpportunityDomainService>();
+builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));
+builder.Services.AddSingleton<IEventPublisher>(serviceProvider =>
+    builder.Configuration.GetValue("RabbitMq:Enabled", false)
+        ? serviceProvider.GetRequiredService<RabbitMqEventPublisher>()
+        : serviceProvider.GetRequiredService<NoOpEventPublisher>());
+builder.Services.AddSingleton<RabbitMqEventPublisher>();
+builder.Services.AddSingleton<NoOpEventPublisher>();
 builder.Services.AddHttpClient<IAiService, AiService>(client =>
 {
     client.BaseAddress = new Uri(aiServiceBaseUrl);

@@ -55,14 +55,14 @@ export function MyCvsPage() {
       ) : (
         <div className="grid gap-4">
           {cvs.map((cv) => (
-            <div key={cv.id} className="paper-panel grain-card p-6">
+            <div key={cv.id} className="paper-panel p-5 transition-colors hover:border-primary/25">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="font-display text-3xl tracking-[-0.04em] text-foreground">{cv.jobTitle}</h2>
+                    <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">{cv.jobTitle}</h2>
                     <StatusPill tone="primary">{cv.template}</StatusPill>
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{cv.companyName} · Generated {formatDate(cv.createdAt)}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{cv.companyName} - Generated {formatDate(cv.createdAt)}</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <Button asChild variant="outline">

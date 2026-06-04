@@ -5,6 +5,7 @@ using AiCv.CvService.Modules.Cvs.DTOs;
 using AiCv.CvService.Modules.Cvs.Repositories;
 using AiCv.CvService.Modules.Cvs.Services;
 using AiCv.CvService.Modules.Cvs.Storage;
+using AiCv.CvService.Modules.Messaging;
 using Microsoft.EntityFrameworkCore;
 
 namespace AiCv.CvService.Tests;
@@ -27,6 +28,7 @@ public class CvGenerationServiceTests
         Assert.Equal("Backend Developer", generated.Target.JobTitle);
         Assert.Equal("Test Company", generated.Target.CompanyName);
         Assert.Contains(".NET", generated.HighlightedSkills);
+        Assert.Contains("API", generated.MatchingKeywords);
         Assert.Contains("Tailor API delivery examples.", generated.TailoredExperienceHints);
         Assert.Contains("Built authenticated backend APIs aligned with platform integration requirements.", generated.Content.Experience[0].Bullets);
         Assert.Contains("Implemented CV generation workflows with service boundaries, API orchestration, and PostgreSQL-backed persistence.", generated.Content.Projects[0].Bullets);
@@ -82,6 +84,7 @@ public class CvGenerationServiceTests
         Assert.Contains("PROJECTS", pdfText);
         Assert.Contains("ATS Portfolio", pdfText);
         Assert.Contains("ASP.NET Core, React, PostgreSQL", pdfText);
+        Assert.Contains("Docker", pdfText);
         Assert.DoesNotContain("ROLE ALIGNMENT", pdfText);
         Assert.DoesNotContain("Tailor API delivery examples.", pdfText);
     }
@@ -102,7 +105,8 @@ public class CvGenerationServiceTests
             new FakeProfileClient(),
             new FakeOpportunityClient(),
             new FakeAiCvGenerationClient(),
-            new FakeCvObjectStorage());
+            new FakeCvObjectStorage(),
+            new NoOpEventPublisher());
     }
 
     private sealed class FakeProfileClient : IProfileClient
@@ -180,6 +184,9 @@ public class CvGenerationServiceTests
                     AnalysisSummary = "Backend-heavy role.",
                     ExtractedSkills = [".NET", "PostgreSQL"],
                     ExtractedKeywords = ["API", "Docker"],
+                    ExtractedResponsibilities = ["Build backend APIs"],
+                    DetectedTechnologies = ["Docker"],
+                    MustHaveRequirements = ["API design"],
                     CvFocusPoints = ["API delivery"]
                 }
             });
@@ -190,6 +197,15 @@ public class CvGenerationServiceTests
     {
         public Task<AiCvGenerationResponseDto> GenerateCvAsync(AiCvGenerationRequestDto request, CancellationToken cancellationToken = default)
         {
+            Assert.Equal("Backend Developer", request.Opportunity.Title);
+            Assert.Equal("Backend-heavy role.", request.Opportunity.AnalysisSummary);
+            Assert.Contains(".NET", request.Opportunity.ExtractedSkills);
+            Assert.Contains("API", request.Opportunity.ExtractedKeywords);
+            Assert.Contains("Build backend APIs", request.Opportunity.ExtractedResponsibilities);
+            Assert.Contains("Docker", request.Opportunity.DetectedTechnologies);
+            Assert.Contains("API design", request.Opportunity.MustHaveRequirements);
+            Assert.Contains("API delivery", request.Opportunity.CvFocusPoints);
+
             return Task.FromResult(new AiCvGenerationResponseDto
             {
                 ProfessionalSummary = "Full Stack Developer focused on backend APIs and PostgreSQL systems.",

@@ -3,7 +3,6 @@ using AiCv.BffGateway.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using Yarp.ReverseProxy;
 
 const string serviceName = "bff-gateway";
 const string serviceDisplayName = "AI CV BFF Gateway";
@@ -40,10 +39,6 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddHttpClient();
-
-builder.Services
-    .AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
 builder.Services.AddCors(options =>
 {
@@ -87,7 +82,7 @@ app.MapGet("/info", (IConfiguration configuration) => Results.Ok(new
 
 app.MapAggregatedEndpoints();
 app.MapHealthEndpoints();
-app.MapReverseProxy();
+app.MapProxyEndpoints();
 
 app.Run();
 

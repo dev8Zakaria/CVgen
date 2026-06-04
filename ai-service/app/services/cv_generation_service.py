@@ -132,7 +132,7 @@ class GeminiCvGenerationProvider:
             config={
                 "response_mime_type": "application/json",
                 "response_schema": CvGenerationResponse,
-                "temperature": 0.25,
+                "temperature": 0.45,
             },
         )
 
