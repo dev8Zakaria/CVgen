@@ -1,0 +1,225 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aicv-frontend
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_AUTH_ENABLED: ${VITE_AUTH_ENABLED:-true}
+      VITE_API_BASE_URL: http://${PUBLIC_HOST:?Set PUBLIC_HOST in .env}:5100/api
+      VITE_KEYCLOAK_URL: http://${PUBLIC_HOST:?Set PUBLIC_HOST in .env}:8080
+      VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-ai-cv-generator}
+      VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID:-frontend-client}
+    depends_on:
+      - bff-gateway
+    networks:
+      - aicv-network
+
+  bff-gateway:
+    build:
+      context: ./services/bff-gateway
+      dockerfile: Dockerfile
+    container_name: aicv-bff-gateway
+    ports:
+      - "${BFF_GATEWAY_PORT:-5100}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      Keycloak__Authority: http://keycloak:8080/realms/ai-cv-generator
+      Keycloak__Audience: ${KEYCLOAK_AUDIENCE:-frontend-client}
+      Keycloak__RequireHttpsMetadata: "false"
+      Cors__AllowedOrigins__0: http://${PUBLIC_HOST:?Set PUBLIC_HOST in .env}:5173
+      DownstreamServices__Profile: http://profile-service:8080
+      DownstreamServices__Opportunity: http://opportunity-service:8080
+      DownstreamServices__Cv: http://cv-service:8080
+      DownstreamServices__Ai: http://ai-service:8000
+    depends_on:
+      - profile-service
+      - opportunity-service
+      - cv-service
+      - keycloak
+    networks:
+      - aicv-network
+
+  profile-service:
+    build:
+      context: ./services/profile-service
+      dockerfile: Dockerfile
+    container_name: aicv-profile-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${PROFILE_DB:-aicv_profile};Username=${POSTGRES_USER:-aicv_user};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      Database__ApplyMigrations: "true"
+      Keycloak__Authority: http://keycloak:8080/realms/ai-cv-generator
+      Keycloak__Audience: ${KEYCLOAK_AUDIENCE:-frontend-client}
+      Keycloak__RequireHttpsMetadata: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - aicv-network
+
+  opportunity-service:
+    build:
+      context: ./services/opportunity-service
+      dockerfile: Dockerfile
+    container_name: aicv-opportunity-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${OPPORTUNITY_DB:-aicv_opportunity};Username=${POSTGRES_USER:-aicv_user};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      Database__ApplyMigrations: "true"
+      Keycloak__Authority: http://keycloak:8080/realms/ai-cv-generator
+      Keycloak__Audience: ${KEYCLOAK_AUDIENCE:-frontend-client}
+      Keycloak__RequireHttpsMetadata: "false"
+      AiService__BaseUrl: http://ai-service:8000
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__Username: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+      RabbitMq__ExchangeName: aicv.events
+      RabbitMq__AuditQueueName: aicv.audit
+      RabbitMq__Enabled: ${RABBITMQ_ENABLED:-true}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      ai-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    networks:
+      - aicv-network
+
+  cv-service:
+    build:
+      context: ./services/cv-service
+      dockerfile: Dockerfile
+    container_name: aicv-cv-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${CV_DB:-aicv_cv};Username=${POSTGRES_USER:-aicv_user};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      Database__ApplyMigrations: "true"
+      Keycloak__Authority: http://keycloak:8080/realms/ai-cv-generator
+      Keycloak__Audience: ${KEYCLOAK_AUDIENCE:-frontend-client}
+      Keycloak__RequireHttpsMetadata: "false"
+      DownstreamServices__Profile: http://profile-service:8080
+      DownstreamServices__Opportunity: http://opportunity-service:8080
+      DownstreamServices__Ai: http://ai-service:8000
+      Minio__Endpoint: minio:9000
+      Minio__AccessKey: ${MINIO_USER:?Set MINIO_USER in .env}
+      Minio__SecretKey: ${MINIO_PASSWORD:?Set MINIO_PASSWORD in .env}
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__Username: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+      RabbitMq__ExchangeName: aicv.events
+      RabbitMq__AuditQueueName: aicv.audit
+      RabbitMq__CvGenerationQueueName: cv.generation.requests
+      RabbitMq__Enabled: ${RABBITMQ_ENABLED:-true}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      minio:
+        condition: service_started
+      ai-service:
+        condition: service_started
+      profile-service:
+        condition: service_started
+      opportunity-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    networks:
+      - aicv-network
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: aicv-ai-service
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-Development}
+      AI_PROVIDER: ${AI_PROVIDER:-gemini}
+      AI_REQUEST_TIMEOUT_SECONDS: ${AI_REQUEST_TIMEOUT_SECONDS:-120}
+      AI_FALLBACK_TO_MOCK: ${AI_FALLBACK_TO_MOCK:-true}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    networks:
+      - aicv-network
+
+  postgres:
+    image: postgres:16
+    container_name: aicv-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aicv_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init-microservices-databases.sql:/docker-entrypoint-initdb.d/01-init-microservices-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aicv_user} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - aicv-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: aicv-keycloak
+    command: ["start-dev", "--import-realm"]
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD in .env}
+      KC_HOSTNAME: http://${PUBLIC_HOST:?Set PUBLIC_HOST in .env}:8080
+      KC_HOSTNAME_STRICT: "false"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ./infra/keycloak/realm-export.deploy.json:/opt/keycloak/data/import/realm-export.json:ro
+    networks:
+      - aicv-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: aicv-minio
+    ports:
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER:?Set MINIO_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:?Set MINIO_PASSWORD in .env}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - aicv-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: aicv-rabbitmq
+    ports:
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+    networks:
+      - aicv-network
+
+networks:
+  aicv-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  keycloak_data:
+  minio_data:
