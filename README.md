@@ -1,5 +1,9 @@
 # AI CV Generator
 
+**Live demo:** https://golf-fonts-helen-greater.trycloudflare.com
+
+> Demo note: this URL is served through a temporary Cloudflare Tunnel and can change if the tunnel container is recreated.
+
 AI CV Generator is a full-stack application that helps a user create a professional CV tailored to a specific job offer.
 
 The application lets the user:
@@ -101,6 +105,7 @@ The architecture is hybrid:
 |   `-- postgres/              # PostgreSQL database initialization
 |-- docs/                      # Project documentation and reports
 |-- docker-compose.final.yml   # Final microservices stack
+|-- docker-compose.deploy.yml  # EC2/demo deployment stack
 `-- .env.example               # Local environment template
 ```
 
@@ -114,44 +119,137 @@ Install:
 - .NET 10 SDK if you want to run or test the .NET services outside Docker
 - Python 3.11+ if you want to run the AI service outside Docker
 
-## Environment Setup
+## Run Locally
 
-Create a local `.env` file:
+The recommended local setup is Docker Compose. It starts the frontend, BFF gateway, microservices, PostgreSQL, Keycloak, MinIO, RabbitMQ, and the AI service.
+
+### 1. Create the environment file
+
+From the project root:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Optional but recommended:
+On Linux/macOS:
+
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and adjust values only if needed.
+
+Important local defaults:
+
+```env
+FRONTEND_PORT=5173
+KEYCLOAK_PORT=8080
+BFF_GATEWAY_PORT=5100
+VITE_API_BASE_URL=http://localhost:5100/api
+VITE_KEYCLOAK_URL=http://localhost:8080
+POSTGRES_USER=aicv_user
+POSTGRES_PASSWORD=aicv_password
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=admin
+MINIO_USER=minioadmin
+MINIO_PASSWORD=minioadmin
+RABBITMQ_USER=guest
+RABBITMQ_PASSWORD=guest
+```
+
+AI configuration:
 
 - Set `GEMINI_API_KEY` if you want to use the real Gemini provider.
-- Use mock/fallback mode if you do not have an AI key.
+- Keep `AI_FALLBACK_TO_MOCK=true` if you want the app to keep working without a valid AI key.
+- Set `AI_FALLBACK_TO_MOCK=false` when you want to prove that real AI calls are being used.
 
 Relevant AI variables:
 
-```text
+```env
 AI_PROVIDER=gemini
 AI_FALLBACK_TO_MOCK=true
 GEMINI_API_KEY=
 ```
 
-If no valid Gemini key is configured, keep fallback enabled or switch the provider to mock depending on your local setup.
+### 2. Start the full stack
 
-## Run The Full Application
-
-Start the final microservices stack:
+Run:
 
 ```powershell
-docker compose -f docker-compose.final.yml up --build
+docker compose -f docker-compose.final.yml up -d --build
 ```
 
-Stop containers:
+The first build can take several minutes.
+
+### 3. Verify containers
+
+```powershell
+docker compose -f docker-compose.final.yml ps
+```
+
+Expected services:
+
+- `aicv-frontend`
+- `aicv-bff-gateway`
+- `aicv-profile-service`
+- `aicv-opportunity-service`
+- `aicv-cv-service`
+- `aicv-ai-service`
+- `aicv-postgres`
+- `aicv-keycloak`
+- `aicv-minio`
+- `aicv-rabbitmq`
+
+### 4. Verify health
+
+```powershell
+Invoke-WebRequest -Uri http://localhost:5100/health -UseBasicParsing
+Invoke-WebRequest -Uri http://localhost:5100/health/downstream -UseBasicParsing
+```
+
+The downstream health endpoint should return all services as healthy:
+
+```json
+{
+  "status": "healthy",
+  "services": {
+    "profile": "healthy",
+    "opportunity": "healthy",
+    "cv": "healthy",
+    "ai": "healthy"
+  }
+}
+```
+
+### 5. Open the app
+
+Use:
+
+```text
+http://localhost:5173
+```
+
+Keycloak admin console:
+
+```text
+http://localhost:8080
+```
+
+Default admin credentials:
+
+```text
+admin / admin
+```
+
+### 6. Stop the stack
+
+Stop containers without deleting data:
 
 ```powershell
 docker compose -f docker-compose.final.yml down
 ```
 
-Stop containers and remove persisted volumes:
+Reset everything, including PostgreSQL, Keycloak, MinIO, and RabbitMQ volumes:
 
 ```powershell
 docker compose -f docker-compose.final.yml down -v
