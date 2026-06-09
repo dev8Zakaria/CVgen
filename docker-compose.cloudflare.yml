@@ -1,0 +1,39 @@
+services:
+  edge-proxy:
+    image: nginx:1.27-alpine
+    container_name: aicv-edge-proxy
+    ports:
+      - "127.0.0.1:8088:8088"
+    volumes:
+      - ./deploy/nginx-cloudflare.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - bff-gateway
+      - keycloak
+    networks:
+      - aicv-network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: aicv-cloudflared
+    command: tunnel --no-autoupdate --url http://edge-proxy:8088
+    depends_on:
+      - edge-proxy
+    networks:
+      - aicv-network
+
+  frontend:
+    environment:
+      VITE_API_BASE_URL: ${PUBLIC_ORIGIN}/api
+      VITE_KEYCLOAK_URL: ${PUBLIC_ORIGIN}
+
+  bff-gateway:
+    environment:
+      Cors__AllowedOrigins__0: ${PUBLIC_ORIGIN}
+
+  keycloak:
+    environment:
+      KC_HOSTNAME: ${PUBLIC_ORIGIN}
+      KC_HOSTNAME_STRICT: "false"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
