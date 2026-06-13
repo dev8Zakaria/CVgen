@@ -1,6 +1,6 @@
 # AI CV Generator
 
-**Live demo:** https://golf-fonts-helen-greater.trycloudflare.com
+**Live demo:** https://cvgen.duckdns.org/
 
 > Demo note: this URL is served through a temporary Cloudflare Tunnel and can change if the tunnel container is recreated.
 
