@@ -8,6 +8,11 @@ public sealed class GenerateCvRequestDto
     public IFormFile? AssetFile { get; set; } // Pour MinIO
 }
 
+public sealed class GenerateCvJsonRequestDto
+{
+    public Guid OpportunityId { get; set; }
+}
+
 public sealed class GeneratedCvProfileDto
 {
     public string FullName { get; set; } = string.Empty;
